@@ -301,7 +301,42 @@ async function updateLeaveBalance(email, newBalance, env) {
   const actualRow = rowIndex + 2;
   await updateSheet(`Employees!C${actualRow}`, [[newBalance]], env);
 }
+// ============================================================
+// EMPLOYEE & SETTINGS FUNCTIONS
+// ============================================================
 
+async function getAllEmployees(env) {
+  await ensureAllSheetsExist(env);
+  const rows = await readSheet('Employees!A:C', env);
+  if (!rows || rows.length < 2) return [];
+  return rows.slice(1).map(row => ({
+    email: row[0],
+    name: row[1],
+    annualLeave: parseFloat(row[2]) || 0
+  }));
+}
+
+async function getSettings(env) {
+  await ensureAllSheetsExist(env);
+  const rows = await readSheet('Settings!A:B', env);
+  
+  const settings = {
+    distanceRate: 0.60,
+    hotelRate: 150,
+    otRateWeekday: 15,
+    otRateSaturday: 20,
+    otRateSunday: 25
+  };
+  
+  for (const row of rows.slice(1)) {
+    if (row[0] === 'distanceRate') settings.distanceRate = parseFloat(row[1]) || 0.60;
+    if (row[0] === 'hotelRate') settings.hotelRate = parseFloat(row[1]) || 150;
+    if (row[0] === 'otRateWeekday') settings.otRateWeekday = parseFloat(row[1]) || 15;
+    if (row[0] === 'otRateSaturday') settings.otRateSaturday = parseFloat(row[1]) || 20;
+    if (row[0] === 'otRateSunday') settings.otRateSunday = parseFloat(row[1]) || 25;
+  }
+  return settings;
+}
 async function getAllEmployees(env) {
   await ensureAllSheetsExist(env);
   const rows = await readSheet('Employees!A:C', env);
