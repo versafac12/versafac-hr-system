@@ -1202,16 +1202,570 @@ const HTML_DASHBOARD = `<!DOCTYPE html>
   }
   
   // ========== MODAL FUNCTIONS ==========
-  function openEditModalForLocal(req) {
-    // ... (same as before, simplified for length)
-    // This would be the full edit modal code
-    alert('Edit functionality - full code would be here');
+ function openEditModalForLocal(req) {
+  if (isModalOpen) {
+    alert(translations[currentLang].pleaseWait);
+    return;
+  }
+  isModalOpen = true;
+  
+  const modalDiv = document.createElement('div');
+  modalDiv.className = 'modal-overlay';
+  let inner = '';
+  
+  if (req.type === 'leave') {
+    inner = '<h3>✏️ ' + (currentLang === 'ms' ? 'Edit Cuti' : 'Edit Leave') + '</h3>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Cuti' : 'Leave Type') + '</label><select id="editLeaveType">' +
+      '<option value="Annual" ' + (req.leaveType === 'Annual' ? 'selected' : '') + '>Annual</option>' +
+      '<option value="Sick" ' + (req.leaveType === 'Sick' ? 'selected' : '') + '>Sick</option>' +
+      '<option value="Unpaid" ' + (req.leaveType === 'Unpaid' ? 'selected' : '') + '>Unpaid</option>' +
+      '<option value="Maternity" ' + (req.leaveType === 'Maternity' ? 'selected' : '') + '>Maternity</option>' +
+      '<option value="Marriage" ' + (req.leaveType === 'Marriage' ? 'selected' : '') + '>Marriage</option>' +
+      '<option value="Paternal" ' + (req.leaveType === 'Paternal' ? 'selected' : '') + '>Paternal</option>' +
+      '<option value="Compassionate" ' + (req.leaveType === 'Compassionate' ? 'selected' : '') + '>Compassionate</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Separuh hari' : 'Half day') + '</label><select id="editHalf">' +
+      '<option value="full" ' + (req.halfDay === 'full' ? 'selected' : '') + '>' + (currentLang === 'ms' ? 'Penuh' : 'Full') + '</option>' +
+      '<option value="morning" ' + (req.halfDay === 'morning' ? 'selected' : '') + '>' + (currentLang === 'ms' ? 'Pagi' : 'Morning') + '</option>' +
+      '<option value="afternoon" ' + (req.halfDay === 'afternoon' ? 'selected' : '') + '>' + (currentLang === 'ms' ? 'Petang' : 'Afternoon') + '</option>' +
+      '</select></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Mula' : 'Start Date') + '</label><input type="date" id="editStart" value="' + req.startDate + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Akhir' : 'End Date') + '</label><input type="date" id="editEnd" value="' + req.endDate + '"></div>' +
+      '<div id="dateError" class="error-msg"></div>';
+  } else if (req.type === 'ot') {
+    inner = '<h3>✏️ ' + (currentLang === 'ms' ? 'Edit Lebih Masa' : 'Edit Overtime') + '</h3>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Mula' : 'Start') + '</label><input type="datetime-local" id="editStartDT" value="' + req.startDateTime + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tamat' : 'End') + '</label><input type="datetime-local" id="editEndDT" value="' + req.endDateTime + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jam' : 'Hours') + '</label><input type="number" step="0.5" id="editHours" value="' + req.hours + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jumlah (RM)' : 'Amount (RM)') + '</label><input type="number" step="0.01" id="editAmount" value="' + req.amount.toFixed(2) + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Lokasi' : 'Location') + '</label><input id="editSite" value="' + (req.site || '') + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Keterangan' : 'Description') + '</label><textarea id="editDesc" rows="2">' + (req.description || '') + '</textarea></div>';
+  } else if (req.type === 'claim') {
+    inner = '<h3>✏️ ' + (currentLang === 'ms' ? 'Edit Tuntutan' : 'Edit Claim') + '</h3>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Tuntutan' : 'Claim Date') + '</label><input type="date" id="editClaimDate" value="' + req.claimDate + '"></div>' +
+      '<div id="editClaimItemsList"></div>' +
+      '<button type="button" id="addEditClaimItem" class="btn-icon">+ ' + (currentLang === 'ms' ? 'Tambah Item' : 'Add Item') + '</button>';
   }
   
-  async function showAddModal(type) {
-    // ... (same as before)
-    alert('Add functionality - full code would be here');
+  modalDiv.innerHTML = '<div class="modal-content"><div style="text-align:right"><button class="closeModal" style="background:none;font-size:24px;">&times;</button></div>' + inner + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="saveEditBtn">' + (currentLang === 'ms' ? 'Simpan' : 'Save') + '</button><button id="cancelEditBtn">' + (currentLang === 'ms' ? 'Batal' : 'Cancel') + '</button></div></div>';
+  document.body.appendChild(modalDiv);
+  
+  const closeModalHandler = () => {
+    if (document.body.contains(modalDiv)) document.body.removeChild(modalDiv);
+    isModalOpen = false;
+  };
+  
+  if (req.type === 'claim') {
+    let claimItems = [...req.items];
+    
+    function renderEditClaimItems() {
+      const container = document.getElementById('editClaimItemsList');
+      if (!container) return;
+      container.innerHTML = '';
+      let html = '';
+      for (let idx = 0; idx < claimItems.length; idx++) {
+        const it = claimItems[idx];
+        html += '<div style="margin-bottom:16px;border-left:3px solid #00cc88;padding:10px;border-radius:12px;" data-edit-item-index="' + idx + '">';
+        html += '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Tuntutan' : 'Claim Type') + '</label>' +
+          '<select class="editClaimTypeSelect" data-idx="' + idx + '">' +
+          '<option value="Meal" ' + (it.claimType === 'Meal' ? 'selected' : '') + '>🍽️ Meal</option>' +
+          '<option value="Touch n Go" ' + (it.claimType === 'Touch n Go' ? 'selected' : '') + '>💳 Touch n Go</option>' +
+          '<option value="Distance" ' + (it.claimType === 'Distance' ? 'selected' : '') + '>🚗 Distance</option>' +
+          '<option value="Hotel" ' + (it.claimType === 'Hotel' ? 'selected' : '') + '>🏨 Hotel</option>' +
+          '<option value="Item" ' + (it.claimType === 'Item' ? 'selected' : '') + '>📦 Item</option>' +
+          '</select></div>';
+        
+        html += '<div class="editDistFields" style="display:none;">' +
+          '<div class="form-group"><label>Dari</label><input type="text" class="editDistFrom" data-idx="' + idx + '" value="' + (it.from || '') + '"></div>' +
+          '<div class="form-group"><label>Ke</label><input type="text" class="editDistTo" data-idx="' + idx + '" value="' + (it.to || '') + '"></div>' +
+          '<div class="form-group"><label>Jarak (km)</label><input type="number" step="0.1" class="editDistKm" data-idx="' + idx + '" value="' + (it.km || '') + '"></div>' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="text" class="editDistAmount" data-idx="' + idx + '" readonly value="' + (it.amount ? it.amount.toFixed(2) : '0') + '"></div></div>';
+        
+        html += '<div class="editHotelFields" style="display:none;">' +
+          '<div class="form-group"><label>Check-in</label><input type="date" class="editHotelIn" data-idx="' + idx + '" value="' + (it.checkIn || '') + '"></div>' +
+          '<div class="form-group"><label>Check-out</label><input type="date" class="editHotelOut" data-idx="' + idx + '" value="' + (it.checkOut || '') + '"></div>' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editHotelAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<div class="editMealFields" style="display:none;">' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editMealAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<div class="editTngFields" style="display:none;">' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editTngAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<div class="editOthersFields" style="display:none;">' +
+          '<div class="form-group"><label>Keterangan</label><input type="text" class="editOthersDesc" data-idx="' + idx + '" value="' + (it.itemDesc || '') + '"></div>' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editOthersAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<button class="removeEditItem" data-idx="' + idx + '" style="background:#dc3545; color:white; border:none; padding:4px 10px; border-radius:20px; margin-top:8px;">' + (currentLang === 'ms' ? 'Buang' : 'Remove') + '</button>';
+        html += '<hr></div>';
+      }
+      container.innerHTML = html;
+      
+      for (let i = 0; i < claimItems.length; i++) {
+        attachEditClaimEvents(i);
+      }
+      
+      document.querySelectorAll('.removeEditItem').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          let idx = parseInt(btn.dataset.idx);
+          claimItems.splice(idx, 1);
+          renderEditClaimItems();
+        });
+      });
+    }
+    
+    function attachEditClaimEvents(idx) {
+      const typeSel = document.querySelector('.editClaimTypeSelect[data-idx="' + idx + '"]');
+      const container = document.querySelector('[data-edit-item-index="' + idx + '"]');
+      if (!container) return;
+      
+      const distDiv = container.querySelector('.editDistFields');
+      const hotelDiv = container.querySelector('.editHotelFields');
+      const mealDiv = container.querySelector('.editMealFields');
+      const tngDiv = container.querySelector('.editTngFields');
+      const othersDiv = container.querySelector('.editOthersFields');
+      
+      function toggle() {
+        const val = typeSel.value;
+        if (distDiv) distDiv.style.display = val === 'Distance' ? 'block' : 'none';
+        if (hotelDiv) hotelDiv.style.display = val === 'Hotel' ? 'block' : 'none';
+        if (mealDiv) mealDiv.style.display = val === 'Meal' ? 'block' : 'none';
+        if (tngDiv) tngDiv.style.display = val === 'Touch n Go' ? 'block' : 'none';
+        if (othersDiv) othersDiv.style.display = val === 'Item' ? 'block' : 'none';
+        claimItems[idx].claimType = val;
+      }
+      if (typeSel) {
+        typeSel.addEventListener('change', toggle);
+        toggle();
+      }
+      
+      const kmInp = container.querySelector('.editDistKm');
+      const distAmt = container.querySelector('.editDistAmount');
+      if (kmInp && distAmt) {
+        kmInp.addEventListener('input', async () => {
+          let km = parseFloat(kmInp.value) || 0;
+          let rate = 0.6;
+          try {
+            const res = await fetch('/api/get-settings');
+            const settings = await res.json();
+            rate = settings.distanceRate || 0.6;
+          } catch(e) { rate = 0.6; }
+          let amt = km * rate;
+          distAmt.value = amt.toFixed(2);
+          claimItems[idx].amount = amt;
+          claimItems[idx].km = km;
+        });
+      }
+      
+      const fromInp = container.querySelector('.editDistFrom');
+      const toInp = container.querySelector('.editDistTo');
+      if (fromInp) fromInp.addEventListener('change', () => { claimItems[idx].from = fromInp.value; });
+      if (toInp) toInp.addEventListener('change', () => { claimItems[idx].to = toInp.value; });
+      
+      const hotelIn = container.querySelector('.editHotelIn');
+      const hotelOut = container.querySelector('.editHotelOut');
+      const hotelAmt = container.querySelector('.editHotelAmount');
+      if (hotelIn && hotelOut && hotelAmt) {
+        const updateHotel = async () => {
+          if (hotelIn.value && hotelOut.value) {
+            let nights = Math.max(1, Math.round((new Date(hotelOut.value) - new Date(hotelIn.value)) / (1000 * 60 * 60 * 24)));
+            let rate = 150;
+            try {
+              const res = await fetch('/api/get-settings');
+              const settings = await res.json();
+              rate = settings.hotelRate || 150;
+            } catch(e) { rate = 150; }
+            let amt = nights * rate;
+            hotelAmt.value = amt;
+            claimItems[idx].amount = amt;
+            claimItems[idx].checkIn = hotelIn.value;
+            claimItems[idx].checkOut = hotelOut.value;
+          }
+        };
+        hotelIn.addEventListener('change', updateHotel);
+        hotelOut.addEventListener('change', updateHotel);
+        hotelAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(hotelAmt.value) || 0; });
+      }
+      
+      const mealAmt = container.querySelector('.editMealAmount');
+      if (mealAmt) mealAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(mealAmt.value) || 0; });
+      
+      const tngAmt = container.querySelector('.editTngAmount');
+      if (tngAmt) tngAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(tngAmt.value) || 0; });
+      
+      const othersAmt = container.querySelector('.editOthersAmount');
+      const othersDesc = container.querySelector('.editOthersDesc');
+      if (othersAmt) othersAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(othersAmt.value) || 0; });
+      if (othersDesc) othersDesc.addEventListener('input', () => { claimItems[idx].itemDesc = othersDesc.value; });
+    }
+    
+    const addItemBtn = document.getElementById('addEditClaimItem');
+    if (addItemBtn) {
+      addItemBtn.onclick = () => {
+        if (isAddingEditItem) return;
+        isAddingEditItem = true;
+        claimItems.push({ claimType: 'Meal', amount: 0 });
+        renderEditClaimItems();
+        setTimeout(() => { isAddingEditItem = false; }, 500);
+      };
+    }
+    
+    renderEditClaimItems();
+    
+    document.getElementById('saveEditBtn').onclick = () => {
+      const newClaimDate = document.getElementById('editClaimDate').value;
+      const validItems = claimItems.filter(i => i.amount > 0);
+      if (validItems.length === 0) {
+        alert(currentLang === 'ms' ? 'Sekurang-kurangnya satu item perlu ada jumlah' : 'At least one item must have an amount');
+        return;
+      }
+      req.claimDate = newClaimDate;
+      req.items = validItems;
+      renderRequests();
+      closeModalHandler();
+    };
+  } else if (req.type === 'leave') {
+    document.getElementById('saveEditBtn').onclick = () => {
+      req.leaveType = document.getElementById('editLeaveType').value;
+      req.halfDay = document.getElementById('editHalf').value;
+      req.startDate = document.getElementById('editStart').value;
+      req.endDate = document.getElementById('editEnd').value;
+      renderRequests();
+      closeModalHandler();
+    };
+  } else if (req.type === 'ot') {
+    document.getElementById('saveEditBtn').onclick = () => {
+      req.startDateTime = document.getElementById('editStartDT').value;
+      req.endDateTime = document.getElementById('editEndDT').value;
+      req.hours = parseFloat(document.getElementById('editHours').value);
+      req.amount = parseFloat(document.getElementById('editAmount').value);
+      req.site = document.getElementById('editSite').value;
+      req.description = document.getElementById('editDesc').value;
+      renderRequests();
+      closeModalHandler();
+    };
   }
+  
+  modalDiv.querySelector('.closeModal').onclick = closeModalHandler;
+  modalDiv.querySelector('#cancelEditBtn').onclick = closeModalHandler;
+}
+  
+ async function showAddModal(type) {
+  if (isModalOpen) {
+    alert(translations[currentLang].pleaseWait);
+    return;
+  }
+  
+  const isValid = await validateBeforeAction();
+  if (!isValid) return;
+  
+  isModalOpen = true;
+  
+  const modalDiv = document.createElement('div');
+  modalDiv.className = 'modal-overlay';
+  let inner = '';
+  
+  if (type === 'leave') {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Cuti Baru' : 'New Leave') + '</h3>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Cuti' : 'Leave Type') + '</label><select id="newLeaveType"><option>Annual</option><option>Sick</option><option>Unpaid</option><option>Maternity</option><option>Marriage</option><option>Paternal</option><option>Compassionate</option></select></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Separuh hari' : 'Half day') + '</label><select id="newHalf"><option value="full">' + (currentLang === 'ms' ? 'Penuh' : 'Full') + '</option><option value="morning">' + (currentLang === 'ms' ? 'Pagi' : 'Morning') + '</option><option value="afternoon">' + (currentLang === 'ms' ? 'Petang' : 'Afternoon') + '</option></select></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Mula' : 'Start Date') + '</label><input type="date" id="newStart" value="' + todayStr + '"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Akhir' : 'End Date') + '</label><input type="date" id="newEnd" value="' + tomorrowStr + '"></div>' +
+      '<div id="dateError" class="error-msg"></div>';
+  } else if (type === 'ot') {
+    inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Lebih Masa Baru' : 'New Overtime') + '</h3>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Mula' : 'Start') + '</label><input type="datetime-local" id="newStartDT"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tamat' : 'End') + '</label><input type="datetime-local" id="newEndDT"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jam (auto)' : 'Hours (auto)') + '</label><input type="number" step="0.5" id="newHours"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jumlah (RM)' : 'Amount (RM)') + '</label><input type="number" step="0.01" id="newAmount"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Lokasi' : 'Location') + '</label><input id="newSite"></div>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Keterangan' : 'Description') + '</label><textarea id="newDesc" rows="2"></textarea></div>';
+  } else if (type === 'claim') {
+    inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Tuntutan Baru' : 'New Claim') + '</h3>' +
+      '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Tuntutan' : 'Claim Date') + '</label><input type="date" id="newClaimDate" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+      '<div id="newClaimItemsList"></div>' +
+      '<button type="button" id="addNewClaimItem" class="btn-icon">+ ' + (currentLang === 'ms' ? 'Tambah Item' : 'Add Item') + '</button>';
+  }
+  
+  modalDiv.innerHTML = '<div class="modal-content"><div style="text-align:right"><button class="closeModal" style="background:none;font-size:24px;">&times;</button></div>' + inner + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="confirmAdd">' + (currentLang === 'ms' ? 'Tambah' : 'Add') + '</button><button id="cancelAdd">' + (currentLang === 'ms' ? 'Batal' : 'Cancel') + '</button></div></div>';
+  document.body.appendChild(modalDiv);
+  
+  const closeModalHandler = () => {
+    if (document.body.contains(modalDiv)) document.body.removeChild(modalDiv);
+    isModalOpen = false;
+  };
+  
+  // OT auto-calculate
+  if (type === 'ot') {
+    const start = document.getElementById('newStartDT');
+    const end = document.getElementById('newEndDT');
+    const hoursInp = document.getElementById('newHours');
+    const amtInp = document.getElementById('newAmount');
+    const update = () => {
+      if (start.value && end.value) {
+        let h = Math.round(((new Date(end.value) - new Date(start.value)) / 3600000) * 2) / 2;
+        hoursInp.value = h;
+        let rate = [15, 15, 15, 15, 15, 20, 25][new Date(start.value).getDay()];
+        amtInp.value = (h * rate).toFixed(2);
+      }
+    };
+    if (start) start.addEventListener('change', update);
+    if (end) end.addEventListener('change', update);
+  }
+  
+  // Claim items
+  if (type === 'claim') {
+    let claimItems = [];
+    
+    function renderClaimItems() {
+      const container = document.getElementById('newClaimItemsList');
+      if (!container) return;
+      container.innerHTML = '';
+      let html = '';
+      for (let idx = 0; idx < claimItems.length; idx++) {
+        const it = claimItems[idx];
+        html += '<div style="margin-bottom:16px;border-left:3px solid #00cc88;padding:10px;border-radius:12px;" data-item-index="' + idx + '">';
+        html += '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Tuntutan' : 'Claim Type') + '</label>' +
+          '<select class="claimTypeSelect" data-idx="' + idx + '">' +
+          '<option value="Meal" ' + (it.claimType === 'Meal' ? 'selected' : '') + '>🍽️ Meal</option>' +
+          '<option value="Touch n Go" ' + (it.claimType === 'Touch n Go' ? 'selected' : '') + '>💳 Touch n Go</option>' +
+          '<option value="Distance" ' + (it.claimType === 'Distance' ? 'selected' : '') + '>🚗 Distance</option>' +
+          '<option value="Hotel" ' + (it.claimType === 'Hotel' ? 'selected' : '') + '>🏨 Hotel</option>' +
+          '<option value="Item" ' + (it.claimType === 'Item' ? 'selected' : '') + '>📦 Item</option>' +
+          '</select></div>';
+        
+        html += '<div class="distFields" style="display:none;">' +
+          '<div class="form-group"><label>Dari</label><input type="text" class="distFrom" data-idx="' + idx + '" value="' + (it.from || '') + '"></div>' +
+          '<div class="form-group"><label>Ke</label><input type="text" class="distTo" data-idx="' + idx + '" value="' + (it.to || '') + '"></div>' +
+          '<div class="form-group"><label>Jarak (km)</label><input type="number" step="0.1" class="distKm" data-idx="' + idx + '" value="' + (it.km || '') + '"></div>' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="text" class="distAmount" data-idx="' + idx + '" readonly value="' + (it.amount ? it.amount.toFixed(2) : '0') + '"></div></div>';
+        
+        html += '<div class="hotelFields" style="display:none;">' +
+          '<div class="form-group"><label>Check-in</label><input type="date" class="hotelIn" data-idx="' + idx + '" value="' + (it.checkIn || '') + '"></div>' +
+          '<div class="form-group"><label>Check-out</label><input type="date" class="hotelOut" data-idx="' + idx + '" value="' + (it.checkOut || '') + '"></div>' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="hotelAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<div class="mealFields" style="display:none;">' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="mealAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<div class="tngFields" style="display:none;">' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="tngAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<div class="othersFields" style="display:none;">' +
+          '<div class="form-group"><label>Keterangan</label><input type="text" class="othersDesc" data-idx="' + idx + '" value="' + (it.itemDesc || '') + '"></div>' +
+          '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="othersAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
+        
+        html += '<button class="removeItem" data-idx="' + idx + '" style="background:#dc3545; color:white; border:none; padding:4px 10px; border-radius:20px; margin-top:8px;">' + (currentLang === 'ms' ? 'Buang' : 'Remove') + '</button>';
+        html += '<hr></div>';
+      }
+      container.innerHTML = html;
+      
+      // Attach events for each claim item
+      for (let i = 0; i < claimItems.length; i++) {
+        attachClaimEvents(i);
+      }
+      
+      document.querySelectorAll('.removeItem').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          let idx = parseInt(btn.dataset.idx);
+          claimItems.splice(idx, 1);
+          renderClaimItems();
+        });
+      });
+    }
+    
+    function attachClaimEvents(idx) {
+      const typeSel = document.querySelector('.claimTypeSelect[data-idx="' + idx + '"]');
+      const container = document.querySelector('[data-item-index="' + idx + '"]');
+      if (!container) return;
+      
+      const distDiv = container.querySelector('.distFields');
+      const hotelDiv = container.querySelector('.hotelFields');
+      const mealDiv = container.querySelector('.mealFields');
+      const tngDiv = container.querySelector('.tngFields');
+      const othersDiv = container.querySelector('.othersFields');
+      
+      function toggle() {
+        const val = typeSel.value;
+        if (distDiv) distDiv.style.display = val === 'Distance' ? 'block' : 'none';
+        if (hotelDiv) hotelDiv.style.display = val === 'Hotel' ? 'block' : 'none';
+        if (mealDiv) mealDiv.style.display = val === 'Meal' ? 'block' : 'none';
+        if (tngDiv) tngDiv.style.display = val === 'Touch n Go' ? 'block' : 'none';
+        if (othersDiv) othersDiv.style.display = val === 'Item' ? 'block' : 'none';
+        claimItems[idx].claimType = val;
+      }
+      if (typeSel) {
+        typeSel.addEventListener('change', toggle);
+        toggle();
+      }
+      
+      const kmInp = container.querySelector('.distKm');
+      const distAmt = container.querySelector('.distAmount');
+      if (kmInp && distAmt) {
+        kmInp.addEventListener('input', async () => {
+          let km = parseFloat(kmInp.value) || 0;
+          let rate = 0.6;
+          try {
+            const res = await fetch('/api/get-settings');
+            const settings = await res.json();
+            rate = settings.distanceRate || 0.6;
+          } catch(e) { rate = 0.6; }
+          let amt = km * rate;
+          distAmt.value = amt.toFixed(2);
+          claimItems[idx].amount = amt;
+          claimItems[idx].km = km;
+        });
+      }
+      
+      const fromInp = container.querySelector('.distFrom');
+      const toInp = container.querySelector('.distTo');
+      if (fromInp) fromInp.addEventListener('change', () => { claimItems[idx].from = fromInp.value; });
+      if (toInp) toInp.addEventListener('change', () => { claimItems[idx].to = toInp.value; });
+      
+      const hotelIn = container.querySelector('.hotelIn');
+      const hotelOut = container.querySelector('.hotelOut');
+      const hotelAmt = container.querySelector('.hotelAmount');
+      if (hotelIn && hotelOut && hotelAmt) {
+        const updateHotel = async () => {
+          if (hotelIn.value && hotelOut.value) {
+            let nights = Math.max(1, Math.round((new Date(hotelOut.value) - new Date(hotelIn.value)) / (1000 * 60 * 60 * 24)));
+            let rate = 150;
+            try {
+              const res = await fetch('/api/get-settings');
+              const settings = await res.json();
+              rate = settings.hotelRate || 150;
+            } catch(e) { rate = 150; }
+            let amt = nights * rate;
+            hotelAmt.value = amt;
+            claimItems[idx].amount = amt;
+            claimItems[idx].checkIn = hotelIn.value;
+            claimItems[idx].checkOut = hotelOut.value;
+          }
+        };
+        hotelIn.addEventListener('change', updateHotel);
+        hotelOut.addEventListener('change', updateHotel);
+        hotelAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(hotelAmt.value) || 0; });
+      }
+      
+      const mealAmt = container.querySelector('.mealAmount');
+      if (mealAmt) mealAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(mealAmt.value) || 0; });
+      
+      const tngAmt = container.querySelector('.tngAmount');
+      if (tngAmt) tngAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(tngAmt.value) || 0; });
+      
+      const othersAmt = container.querySelector('.othersAmount');
+      const othersDesc = container.querySelector('.othersDesc');
+      if (othersAmt) othersAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(othersAmt.value) || 0; });
+      if (othersDesc) othersDesc.addEventListener('input', () => { claimItems[idx].itemDesc = othersDesc.value; });
+    }
+    
+    const addItemBtn = document.getElementById('addNewClaimItem');
+    if (addItemBtn) {
+      addItemBtn.onclick = () => {
+        if (isAddingItem) return;
+        isAddingItem = true;
+        claimItems.push({ claimType: 'Meal', amount: 0 });
+        renderClaimItems();
+        setTimeout(() => { isAddingItem = false; }, 500);
+      };
+    }
+    
+    renderClaimItems();
+    
+    const confirmBtn = modalDiv.querySelector('#confirmAdd');
+    if (confirmBtn) {
+      confirmBtn.onclick = () => {
+        if (isConfirming) return;
+        isConfirming = true;
+        
+        const claimDate = document.getElementById('newClaimDate').value;
+        const validItems = claimItems.filter(i => i.amount > 0);
+        if (validItems.length === 0) {
+          alert(currentLang === 'ms' ? 'Tambah sekurang-kurangnya satu item' : 'Add at least one item');
+          isConfirming = false;
+          return;
+        }
+        requests.push({ id: nextId++, type: 'claim', claimDate: claimDate, items: validItems });
+        renderRequests();
+        closeModalHandler();
+        isConfirming = false;
+      };
+    }
+  } else if (type === 'leave') {
+    const confirmBtn = modalDiv.querySelector('#confirmAdd');
+    if (confirmBtn) {
+      confirmBtn.onclick = async () => {
+        if (isConfirming) return;
+        isConfirming = true;
+        
+        const lt = document.getElementById('newLeaveType').value;
+        const hd = document.getElementById('newHalf').value;
+        const startInput = document.getElementById('newStart');
+        const endInput = document.getElementById('newEnd');
+        const errorSpan = document.getElementById('dateError');
+        
+        let startDate = startInput.value ? new Date(startInput.value) : null;
+        let endDate = endInput.value ? new Date(endInput.value) : null;
+        
+        if (!startDate || !endDate || isNaN(startDate) || isNaN(endDate)) {
+          errorSpan.innerText = currentLang === 'ms' ? 'Sila pilih tarikh yang sah menggunakan kalendar.' : 'Please select valid dates using the calendar.';
+          isConfirming = false;
+          return;
+        }
+        if (endDate < startDate) {
+          errorSpan.innerText = currentLang === 'ms' ? 'Tarikh akhir mestilah selepas tarikh mula.' : 'End date must be after start date.';
+          isConfirming = false;
+          return;
+        }
+        const sdStr = startDate.toISOString().split('T')[0];
+        const edStr = endDate.toISOString().split('T')[0];
+        const daysReq = calculateLeaveDaysFront(sdStr, edStr, hd);
+        if (daysReq > currentBalance) {
+          errorSpan.innerText = translations[currentLang].leaveInsufficient + currentBalance + ' ' + (currentLang === 'ms' ? 'hari. Permohonan anda: ' : 'days. Requested: ') + daysReq + ' ' + (currentLang === 'ms' ? 'hari.' : 'days.');
+          isConfirming = false;
+          return;
+        }
+        requests.push({ id: nextId++, type: 'leave', leaveType: lt, halfDay: hd, startDate: sdStr, endDate: edStr });
+        renderRequests();
+        closeModalHandler();
+        isConfirming = false;
+      };
+    }
+  } else if (type === 'ot') {
+    const confirmBtn = modalDiv.querySelector('#confirmAdd');
+    if (confirmBtn) {
+      confirmBtn.onclick = () => {
+        if (isConfirming) return;
+        isConfirming = true;
+        
+        const sdt = document.getElementById('newStartDT').value;
+        const edt = document.getElementById('newEndDT').value;
+        const hrs = parseFloat(document.getElementById('newHours').value);
+        const amt = parseFloat(document.getElementById('newAmount').value);
+        const site = document.getElementById('newSite').value;
+        const desc = document.getElementById('newDesc').value;
+        if (!sdt || !edt) {
+          alert(currentLang === 'ms' ? 'Pilih masa' : 'Select datetime');
+          isConfirming = false;
+          return;
+        }
+        requests.push({ id: nextId++, type: 'ot', startDateTime: sdt, endDateTime: edt, hours: hrs, amount: amt, site: site, description: desc });
+        renderRequests();
+        closeModalHandler();
+        isConfirming = false;
+      };
+    }
+  }
+  
+  modalDiv.querySelector('.closeModal').onclick = closeModalHandler;
+  modalDiv.querySelector('#cancelAdd').onclick = closeModalHandler;
+}
+  
   
   // ========== EVENT LISTENERS ==========
   
@@ -1225,24 +1779,229 @@ const HTML_DASHBOARD = `<!DOCTYPE html>
   });
   
   submitAllBtn.onclick = async () => {
-    // ... (simplified for length)
-    alert('Submit All - full code would be here');
-  };
+  if (isSubmitting) {
+    alert(translations[currentLang].pleaseWait);
+    return;
+  }
+  
+  const email = reqEmail.value.trim();
+  const name = reqName.value.trim();
+  
+  if (!email || !name) {
+    alert(translations[currentLang].pleaseEnterEmailName);
+    return;
+  }
+  
+  if (requests.length === 0) {
+    alert(currentLang === 'ms' ? 'Tiada permohonan' : 'No requests');
+    return;
+  }
+  
+  isSubmitting = true;
+  submitAllBtn.disabled = true;
+  submitAllBtn.style.opacity = '0.6';
+  
+  const t = translations[currentLang];
+  submitResultDiv.style.display = 'block';
+  submitResultDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + t.waiting;
+  
+  try {
+    for (let it of requests) {
+      if (it.type === 'leave') {
+        await fetch('/api/submit-leave', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email, name,
+            leaveType: it.leaveType,
+            halfDay: it.halfDay,
+            startDate: it.startDate,
+            endDate: it.endDate
+          })
+        });
+      } else if (it.type === 'ot') {
+        await fetch('/api/submit-overtime', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email, fullName: name,
+            startDateTime: it.startDateTime,
+            endDateTime: it.endDateTime,
+            hours: it.hours,
+            amount: it.amount,
+            site: it.site,
+            description: it.description || ''
+          })
+        });
+      } else if (it.type === 'claim') {
+        await fetch('/api/submit-claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email, fullName: name,
+            claimDate: it.claimDate,
+            items: it.items
+          })
+        });
+      }
+    }
+    submitResultDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + t.submitSuccess;
+    requests = [];
+    renderRequests();
+  } catch (err) {
+    submitResultDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + t.submitFail + ': ' + err.message;
+  } finally {
+    isSubmitting = false;
+    submitAllBtn.disabled = false;
+    submitAllBtn.style.opacity = '1';
+    setTimeout(() => {
+      submitResultDiv.style.display = 'none';
+    }, 3000);
+  }
+};
   
   uploadBtn.onclick = async () => {
-    // ... (simplified for length)
-    alert('Upload - full code would be here');
-  };
+  if (isUploading) {
+    alert(translations[currentLang].pleaseWait);
+    return;
+  }
+  
+  const email = reqEmail.value.trim();
+  const name = reqName.value.trim();
+  
+  if (!email || !name) {
+    alert(translations[currentLang].pleaseEnterEmailName);
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  if (!file) {
+    alert(currentLang === 'ms' ? 'Pilih fail' : 'Select a file');
+    return;
+  }
+  
+  isUploading = true;
+  uploadBtn.disabled = true;
+  uploadBtn.style.opacity = '0.6';
+  
+  const t = translations[currentLang];
+  uploadFeedback.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + t.waiting;
+  
+  const fd = new FormData();
+  fd.append('email', email);
+  fd.append('fullName', name);
+  fd.append('receiptType', document.getElementById('receiptType').value);
+  fd.append('description', document.getElementById('receiptDesc').value);
+  fd.append('file', file);
+  
+  try {
+    const resp = await fetch('/api/upload-receipt', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (data.success) {
+      uploadFeedback.innerHTML = '<i class="fas fa-check-circle"></i> ' + t.uploadOk + ' (' + file.name + ')';
+      fileInput.value = '';
+      document.getElementById('receiptDesc').value = '';
+    } else {
+      uploadFeedback.innerHTML = '<i class="fas fa-times"></i> ' + data.error;
+    }
+  } catch (e) {
+    uploadFeedback.innerHTML = '<i class="fas fa-times"></i> ' + t.uploadFail;
+  } finally {
+    isUploading = false;
+    uploadBtn.disabled = false;
+    uploadBtn.style.opacity = '1';
+    setTimeout(() => {
+      uploadFeedback.innerHTML = '';
+    }, 3000);
+  }
+};
   
   sendChatBtn.onclick = async () => {
-    // ... (simplified for length)
-    alert('Chat - full code would be here');
-  };
+  if (isSending) return;
+  
+  const email = document.getElementById('chatEmail').value.trim();
+  const msg = document.getElementById('chatInput').value.trim();
+  
+  if (!email || !msg) {
+    alert(currentLang === 'ms' ? 'Email dan soalan diperlukan' : 'Email and message required');
+    return;
+  }
+  
+  isSending = true;
+  sendChatBtn.disabled = true;
+  sendChatBtn.style.opacity = '0.6';
+  
+  const chatBox = document.getElementById('chatBox');
+  const userDiv = document.createElement('div');
+  userDiv.className = 'msg-user';
+  userDiv.innerText = msg;
+  chatBox.appendChild(userDiv);
+  document.getElementById('chatInput').value = '';
+  
+  const loading = document.createElement('div');
+  loading.className = 'msg-ai';
+  loading.innerText = '...';
+  chatBox.appendChild(loading);
+  
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, email: email, language: currentLang })
+    });
+    const data = await res.json();
+    loading.innerText = data.reply || (currentLang === 'ms' ? 'Ralat' : 'Error');
+  } catch (e) {
+    loading.innerText = currentLang === 'ms' ? 'Ralat rangkaian' : 'Network error';
+  }
+  
+  chatBox.scrollTop = chatBox.scrollHeight;
+  isSending = false;
+  sendChatBtn.disabled = false;
+  sendChatBtn.style.opacity = '1';
+};
   
   loadHistoryBtn.onclick = async () => {
-    // ... (simplified for length)
-    alert('Load History - full code would be here');
-  };
+  if (isLoading) return;
+  
+  const email = document.getElementById('historyEmail').value;
+  if (!email) return;
+  
+  isLoading = true;
+  loadHistoryBtn.disabled = true;
+  loadHistoryBtn.style.opacity = '0.6';
+  
+  try {
+    const res = await fetch('/api/get-history?email=' + encodeURIComponent(email));
+    const data = await res.json();
+    const historyDiv = document.getElementById('historyList');
+    
+    if (!data.success) {
+      historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Ralat memuat sejarah' : 'Error loading history') + '</p>';
+    } else if (data.history.length === 0) {
+      historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Tiada rekod' : 'No records') + '</p>';
+    } else {
+      let html = '';
+      for (let h of data.history) {
+        if (h.type === 'Leave') {
+          html += '<div class="history-item"><i class="fas fa-calendar"></i> <strong>' + (currentLang === 'ms' ? 'Cuti' : 'Leave') + '</strong> ' + h.leaveType + ' (' + h.halfDay + ') ' + h.start + ' → ' + h.end + ' - ' + h.status + '</div>';
+        } else if (h.type === 'Overtime') {
+          html += '<div class="history-item"><i class="fas fa-clock"></i> <strong>' + (currentLang === 'ms' ? 'Lebih Masa' : 'Overtime') + '</strong> ' + h.date + ' ' + h.hours + 'h = RM' + parseFloat(h.amount).toFixed(2) + ' - ' + h.status + '</div>';
+        } else if (h.type === 'Claim') {
+          html += '<div class="history-item"><i class="fas fa-receipt"></i> <strong>' + (currentLang === 'ms' ? 'Tuntutan' : 'Claim') + '</strong> ' + h.claimType + ' RM' + parseFloat(h.amount).toFixed(2) + ' (' + h.claimDate + ') - ' + h.status + '</div>';
+        } else if (h.type === 'Receipt') {
+          html += '<div class="history-item"><i class="fas fa-paperclip"></i> <strong>' + (currentLang === 'ms' ? 'Resit' : 'Receipt') + '</strong> ' + h.receiptType + ' - <a href="' + h.fileUrl + '" target="_blank">' + (currentLang === 'ms' ? 'lihat' : 'view') + '</a> - ' + h.status + '</div>';
+        }
+        html += '</div>';
+      }
+      historyDiv.innerHTML = html;
+    }
+  } finally {
+    isLoading = false;
+    loadHistoryBtn.disabled = false;
+    loadHistoryBtn.style.opacity = '1';
+  }
+};
   
   // Tab switching
   const tabs = document.querySelectorAll('.tab');
