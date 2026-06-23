@@ -1,3 +1,20 @@
 name = "versafac-hr-worker"
 main = "index.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-12-18"
+
+[vars]
+# Google Sheets
+SPREADSHEET_ID = "1WnPtfeF_Sg5EOu6KxjvYr6cddOEAdy9tYOy1trizB7Q"
+
+# Google Drive Folder - GUNA ID BARU INI
+GOOGLE_DRIVE_FOLDER_ID = "1D-q-1VJjv-f4wnxqaj14P49DpCGPFBA3"
+
+# Telegram Notification
+TELEGRAM_BOT_TOKEN = "8934675403:AAGpb_NYmy4sZdTqIZoQGKab1biMDIJOGXk"
+TELEGRAM_CHAT_ID = "977935778"
+
+# Admin Panel Password (username: admin)
+ADMIN_PASSWORD = "admin123"
+
+# Email Notification (Resend)
+RESEND_API_KEY = "re_Mzr2rH7Z_2VaTBBBZpHNbb4hBPW751uCD"
