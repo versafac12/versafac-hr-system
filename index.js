@@ -34,17 +34,24 @@ function escapeHtml(str) {
 }
 
 function calculateLeaveDays(startDate, endDate, halfDay) {
+  if (!startDate || !endDate) return 0;
   const start = new Date(startDate);
   const end = new Date(endDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
   const diffTime = Math.abs(end - start);
   let days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   if (halfDay !== 'full') days = days - 0.5;
-  return days;
+  return days > 0 ? days : 0;
 }
 
 function calculateHours(start, end) {
-  const diff = new Date(end) - new Date(start);
-  return Math.round((diff / 3600000) * 2) / 2;
+  if (!start || !end) return 0;
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0;
+  const diff = endDate - startDate;
+  const hours = Math.round((diff / 3600000) * 2) / 2;
+  return hours > 0 ? hours : 0;
 }
 
 function getSuggestedRate(d) {
@@ -1027,13 +1034,15 @@ const HTML_DASHBOARD = `<!DOCTYPE html>
   }
   
   function calculateLeaveDaysFront(startDate, endDate, halfDay) {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end - start);
-    let days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    if (halfDay !== 'full') days = days - 0.5;
-    return days;
-  }
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
+  const diffTime = Math.abs(end - start);
+  let days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  if (halfDay !== 'full') days = days - 0.5;
+  return days > 0 ? days : 0;
+}
   
   // ========== LEAVE CALENDAR ==========
   async function loadCalendar() {
@@ -2356,7 +2365,7 @@ export default {
           const requestData = rows[rowIndex+1];
           await updateSheet(`LeaveRequests!J${actualRow}`, [[status]], env);
           if (status === 'approved') {
-            const daysUsed = calculateLeaveDays(requestData[6], requestData[7], requestData[5]);
+            const daysUsed = calculateLeaveDays(requestData[6], requestData[7], requestData[5]) || 0;
             const userBalance = await getUserLeaveBalance(requestData[2], env);
             if (userBalance) await updateLeaveBalance(requestData[2], userBalance.balance - daysUsed, env);
           }
