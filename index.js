@@ -209,25 +209,73 @@ async function updateSheet(range, values, env) {
 }
 
 async function uploadToDrive(file, fileName, mimeType, env) {
-  const token = await getGoogleAccessToken(env);
-  const folderId = env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_GOOGLE_DRIVE_FOLDER_ID;
-  const metadata = { name: fileName, parents: [folderId], mimeType };
-  const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  form.append('file', file, fileName);
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+  try {
+    // Get access token using refresh token
+    const token = await getAccessTokenWithRefreshToken(env);
+    
+    const folderId = env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_GOOGLE_DRIVE_FOLDER_ID;
+    
+    const metadata = { 
+      name: fileName, 
+      parents: [folderId], 
+      mimeType 
+    };
+    
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', file, fileName);
+    
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: form
+    });
+    
+    const data = await res.json();
+    
+    if (!data.id) {
+      throw new Error('Upload failed: ' + JSON.stringify(data));
+    }
+    
+    // Set public access
+    await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    
+    return `https://drive.google.com/file/d/${data.id}/view`;
+  } catch (e) {
+    console.error('Upload error:', e);
+    throw e;
+  }
+}
+
+async function getAccessTokenWithRefreshToken(env) {
+  const refreshToken = env.GOOGLE_REFRESH_TOKEN;
+  const clientId = env.GOOGLE_CLIENT_ID;
+  const clientSecret = env.GOOGLE_CLIENT_SECRET;
+  
+  if (!refreshToken) {
+    throw new Error('GOOGLE_REFRESH_TOKEN not set');
+  }
+  
+  const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: form
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    })
   });
-  const data = await res.json();
-  if (!data.id) throw new Error('Upload failed');
-  await fetch(`https://www.googleapis.com/drive/v3/files/${data.id}/permissions`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role: 'reader', type: 'anyone' })
-  });
-  return `https://drive.google.com/file/d/${data.id}/view`;
+  
+  const data = await response.json();
+  if (!data.access_token) {
+    throw new Error('Failed to refresh token: ' + JSON.stringify(data));
+  }
+  return data.access_token;
 }
 
 // ============================================================
