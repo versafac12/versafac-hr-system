@@ -672,6 +672,11 @@ async function generateMonthlyReport(env, year, month, lang = 'ms') {
   html += `</tbody></table><div class="footer">Generated on: ${formatTimestamp()}</div></body></html>`;
   return html;
 }
+
+// ============================================================
+// HTML DASHBOARD - COMPLETE VERSION
+// ============================================================
+
 const HTML_DASHBOARD = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -768,9 +773,22 @@ const HTML_DASHBOARD = `<!DOCTYPE html>
         </div>
         <div class="section-title" style="margin-top:24px; font-size:1rem;"><i class="fas fa-paperclip"></i> <span id="attachReceiptTitle">Attach Receipt</span></div>
         <div class="flex-row">
-          <div style="flex:1"><select id="receiptType"><option>Meal</option><option>TNG</option><option>Hotel</option><option>Item</option></select></div>
-          <div style="flex:2"><input type="text" id="receiptDesc" placeholder="Description (e.g., Dinner)"></div>
-          <div style="flex:2"><input type="file" id="receiptFile" accept=".pdf,image/*"></div>
+          <div style="flex:1">
+            <select id="receiptType">
+              <option>Meal</option>
+              <option>TNG</option>
+              <option>Hotel</option>
+              <option>Item</option>
+            </select>
+          </div>
+          <div style="flex:2">
+            <input type="text" id="receiptDesc" placeholder="Description (e.g., Dinner)">
+          </div>
+          <div style="flex:2">
+            <label style="display:block;font-size:0.8rem;margin-bottom:4px;">Choose File (PDF or Image)</label>
+            <input type="file" id="receiptFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp" style="padding:8px;">
+            <label for="receiptFile" style="font-size:0.7rem;color:#6b7280;margin-top:4px;display:block;">Accepted: PDF, JPG, PNG, GIF</label>
+          </div>
           <button id="uploadReceiptBtn"><i class="fas fa-upload"></i> <span id="uploadBtnText">Upload</span></button>
         </div>
         <div id="uploadFeedback" class="file-feedback"></div>
@@ -954,6 +972,7 @@ const HTML_DASHBOARD = `<!DOCTYPE html>
     document.getElementById('emailLabel').innerText = t.emailLabel;
     document.getElementById('nameLabel').innerText = t.nameLabel;
     document.getElementById('addRequestTitle').innerText = t.addRequestTitle;
+    document.querySelector('label[for="receiptFile"]')?.innerText = t.selectFile || 'Select a file';
     
     const leaveSpan = document.querySelector('#leaveBadge span');
     if (leaveSpan) leaveSpan.innerText = t.leaveBadge;
@@ -2089,8 +2108,9 @@ const HTML_DASHBOARD = `<!DOCTYPE html>
 </script>
 </body>
 </html>`;
+
 // ============================================================
-// ADMIN PANEL (FULLY BILINGUAL)
+// ADMIN PANEL (FULLY BILINGUAL) - RECEIPTS TABS INCLUDED
 // ============================================================
 
 async function renderAdminPanel(env, errorMsg = null, lang = 'ms') {
@@ -2128,6 +2148,30 @@ async function renderAdminPanel(env, errorMsg = null, lang = 'ms') {
       }
     }
   }
+
+  // Get receipts
+const receipts = await readSheet('Receipts!A:G', env);
+const pendingReceipts = receipts.slice(1).filter(r => r[6] === 'pending').map(r => ({
+  id: r[0] || Date.now().toString(),
+  timestamp: r[0] || '',
+  email: r[1] || '',
+  name: r[2] || '',
+  receiptType: r[3] || '',
+  fileUrl: r[4] || '',
+  description: r[5] || '',
+  status: r[6] || 'pending'
+}));
+
+const historyReceipts = receipts.slice(1).filter(r => r[6] === 'approved' || r[6] === 'rejected').map(r => ({
+  id: r[0] || Date.now().toString(),
+  timestamp: r[0] || '',
+  email: r[1] || '',
+  name: r[2] || '',
+  receiptType: r[3] || '',
+  fileUrl: r[4] || '',
+  description: r[5] || '',
+  status: r[6] || 'pending'
+}));
   
   // Translations
   const t = {
@@ -2326,6 +2370,47 @@ async function renderAdminPanel(env, errorMsg = null, lang = 'ms') {
     html += `</tbody></table></div>`;
     return html;
   };
+
+  const renderReceiptTable = (items, showActions = true) => {
+  if (items.length === 0) return '<div class="no-data"><i class="fas fa-inbox"></i> No receipts</div>';
+  
+  let html = `<div class="table-wrapper"><table>`;
+  html += `<thead><tr>`;
+  html += `<th>Timestamp</th><th>Name</th><th>Email</th><th>Type</th><th>File</th><th>Description</th><th>Status</th>`;
+  if (showActions) html += `<th>Action</th>`;
+  html += `</tr></thead><tbody>`;
+  
+  for (const item of items) {
+    let statusBadge = '';
+    if (item.status === 'approved') statusBadge = '<span class="badge-approved"><i class="fas fa-check-circle"></i> Approved</span>';
+    else if (item.status === 'rejected') statusBadge = '<span class="badge-rejected"><i class="fas fa-times-circle"></i> Rejected</span>';
+    else statusBadge = '<span class="badge-pending"><i class="fas fa-clock"></i> Pending</span>';
+    
+    const fileLink = item.fileUrl && item.fileUrl.startsWith('http') 
+      ? `<a href="${item.fileUrl}" target="_blank" style="color:#00aa6e;"><i class="fas fa-external-link-alt"></i> View</a>` 
+      : item.fileUrl || 'No file';
+    
+    html += `<tr>`;
+    html += `<td>${escapeHtml(item.timestamp)}</td>`;
+    html += `<td>${escapeHtml(item.name)}</td>`;
+    html += `<td>${escapeHtml(item.email)}</td>`;
+    html += `<td><span class="badge-pending" style="background:#3b82f620;color:#3b82f6;">${escapeHtml(item.receiptType)}</span></td>`;
+    html += `<td>${fileLink}</td>`;
+    html += `<td>${escapeHtml(item.description || '-')}</td>`;
+    html += `<td class="status-cell">${statusBadge}</td>`;
+    if (showActions && item.status === 'pending') {
+      html += `<td class="action-cell">
+        <button class="approve-btn" onclick="approveReceipt('${item.id}')"><i class="fas fa-check"></i> Approve</button>
+        <button class="reject-btn" onclick="rejectReceipt('${item.id}')"><i class="fas fa-times"></i> Reject</button>
+      </td>`;
+    } else if (showActions) {
+      html += `<td class="action-cell">-</td>`;
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody></table></div>`;
+  return html;
+};
   
   return `<!DOCTYPE html>
 <html lang="${lang}">
@@ -2441,10 +2526,11 @@ async function renderAdminPanel(env, errorMsg = null, lang = 'ms') {
   </div>
   
   <div class="main-tabs">
-    <button class="main-tab active" data-main="leave"><i class="fas fa-calendar-alt"></i> ${text.leave}</button>
-    <button class="main-tab" data-main="overtime"><i class="fas fa-clock"></i> ${text.overtime}</button>
-    <button class="main-tab" data-main="claim"><i class="fas fa-receipt"></i> ${text.claim}</button>
-  </div>
+  <button class="main-tab active" data-main="leave"><i class="fas fa-calendar-alt"></i> ${text.leave}</button>
+  <button class="main-tab" data-main="overtime"><i class="fas fa-clock"></i> ${text.overtime}</button>
+  <button class="main-tab" data-main="claim"><i class="fas fa-receipt"></i> ${text.claim}</button>
+  <button class="main-tab" data-main="receipts"><i class="fas fa-paperclip"></i> Receipts</button>
+</div>
   
   <div id="leaveSection" class="main-section">
     <div class="sub-tabs">
@@ -2490,6 +2576,20 @@ async function renderAdminPanel(env, errorMsg = null, lang = 'ms') {
       ${renderTable(historyClaims, 'claim', true, false)}
     </div>
   </div>
+
+<div id="receiptsSection" class="main-section" style="display: none;">
+  <div class="sub-tabs">
+    <button class="sub-tab active" data-sub="pending-receipts"><i class="fas fa-clock"></i> Pending (${pendingReceipts.length})</button>
+    <button class="sub-tab" data-sub="history-receipts"><i class="fas fa-history"></i> History (${historyReceipts.length})</button>
+  </div>
+  <div id="pending-receipts" class="sub-section">
+    <h3 style="margin-bottom: 16px;"><i class="fas fa-hourglass-half"></i> Pending Receipts</h3>
+    ${renderReceiptTable(pendingReceipts, true)}
+  </div>
+  <div id="history-receipts" class="sub-section" style="display: none;">
+    <h3 style="margin-bottom: 16px;"><i class="fas fa-history"></i> Receipt History</h3>
+    ${renderReceiptTable(historyReceipts, false)}
+  </div>
 </div>
 
 <script>
@@ -2526,6 +2626,7 @@ function initSubTabs(prefix) {
 initSubTabs('leave');
 initSubTabs('overtime');
 initSubTabs('claim');
+initSubTabs('receipts');
 
 async function approve(type, id) {
   if(confirm('${text.confirmApprove}')) {
@@ -2550,6 +2651,32 @@ async function reject(type, id) {
     const d = await r.json();
     if(d.success) location.reload();
     else alert('${text.error}: ' + d.error);
+  }
+}
+
+async function approveReceipt(id) {
+  if(confirm('Confirm approve this receipt?')) {
+    const r = await fetch('/api/approve-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId: id, status: 'approved' })
+    });
+    const d = await r.json();
+    if(d.success) location.reload();
+    else alert('Error: ' + d.error);
+  }
+}
+
+async function rejectReceipt(id) {
+  if(confirm('Confirm reject this receipt?')) {
+    const r = await fetch('/api/approve-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId: id, status: 'rejected' })
+    });
+    const d = await r.json();
+    if(d.success) location.reload();
+    else alert('Error: ' + d.error);
   }
 }
 
@@ -2853,7 +2980,7 @@ export default {
     }
     
     // Admin auth
-    const isAdminPath = path === '/admin' || path === '/admin/settings' || path === '/api/approve-request';
+    const isAdminPath = path === '/admin' || path === '/admin/settings' || path === '/api/approve-request' || path === '/api/approve-receipt';
     if (isAdminPath) {
       const auth = request.headers.get('Authorization');
       const expectedPassword = env.ADMIN_PASSWORD || 'admin123';
@@ -3243,6 +3370,23 @@ export default {
         return Response.json({ error: e.message }, { status: 500 });
       }
     }
+    
+    // Approve/Reject receipt
+if (path === '/api/approve-receipt' && method === 'POST') {
+  try {
+    const { requestId, status } = await request.json();
+    const rows = await readSheet('Receipts!A:G', env);
+    const rowIndex = rows.slice(1).findIndex(r => (r[0] || '') === requestId);
+    if (rowIndex === -1) return Response.json({ error: 'Not found' }, { status: 404 });
+    const actualRow = rowIndex + 2;
+    await updateSheet(`Receipts!G${actualRow}`, [[status]], env);
+    const requestData = rows[rowIndex+1];
+    await sendTelegramNotification(env, `📎 RECEIPT ${status === 'approved' ? '✅ APPROVED' : '❌ REJECTED'}\nName: ${requestData[2]}\nEmail: ${requestData[1]}\nType: ${requestData[3]}`);
+    return Response.json({ success: true });
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 500 });
+  }
+}
     
     // Update settings
     if (path === '/api/update-settings' && method === 'POST') {
