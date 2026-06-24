@@ -678,1431 +678,1157 @@ async function generateMonthlyReport(env, year, month, lang = 'ms') {
 // ============================================================
 
 const HTML_DASHBOARD = `<!DOCTYPE html>
+const HTML_DASHBOARD = `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>Versafac HR - Smart Leave & Claim System</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'Inter',sans-serif; transition:all 0.3s ease; min-height:100vh; padding:16px; background:#f0f4f8; color:#1a2c3e; }
-    body.dark { background:#0b1a18; color:#e0f2e9; }
-    .container { max-width:1400px; margin:0 auto; }
-    .header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px; padding:12px 20px; background:white; border-radius:40px; box-shadow:0 4px 12px rgba(0,0,0,0.05); }
-    body.dark .header { background:rgba(20,35,30,0.9); border-bottom:1px solid rgba(0,255,170,0.3); }
-    .logo h1 { font-size:1.6rem; font-weight:800; background:linear-gradient(135deg, #00aa6e, #00e6a0); -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .logo p { font-size:0.7rem; opacity:0.7; }
-    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-    .lang-btn, .mode-btn { background:#eef2f8; border:none; padding:8px 16px; border-radius:40px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
-    body.dark .lang-btn, body.dark .mode-btn { background:rgba(0,255,170,0.15); color:#b3ffe0; }
-    .admin-btn { background:#00aa6e; color:white; border:none; padding:8px 20px; border-radius:40px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px; text-decoration:none; box-shadow:0 2px 8px rgba(0,170,110,0.3); }
-    .admin-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,170,110,0.4); }
-    .tabs { display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
-    .tab { padding:10px 24px; border-radius:40px; font-weight:600; cursor:pointer; background:#eef2f8; color:#2c3e50; border:none; }
-    body.dark .tab { background:rgba(255,255,255,0.1); color:#ccf0e5; }
-    .tab.active { background:#00cc88; color:white; box-shadow:0 4px 12px rgba(0,204,136,0.3); }
-    body.dark .tab.active { background:linear-gradient(105deg, #00aa6e, #00e0a0); color:#03100c; }
-    .two-columns { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
-    .card { background:white; border-radius:28px; padding:20px; box-shadow:0 8px 20px rgba(0,0,0,0.05); transition:0.2s; }
-    body.dark .card { background:rgba(20,35,30,0.8); border:1px solid rgba(0,255,170,0.2); }
-    .section-title { font-size:1.3rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:10px; }
-    .form-group { margin-bottom:16px; }
-    label { font-weight:600; display:block; margin-bottom:6px; font-size:0.85rem; }
-    input, select, textarea { width:100%; padding:12px 16px; border-radius:28px; border:1px solid #dce5ef; background:white; font-family:inherit; }
-    body.dark input, body.dark select, body.dark textarea { background:rgba(0,0,0,0.5); border-color:rgba(0,255,170,0.4); color:#edfff5; }
-    input:focus, select:focus { outline:none; border-color:#00cc88; box-shadow:0 0 0 2px rgba(0,204,136,0.2); }
-    button { background:linear-gradient(100deg, #00b377, #00e6a0); border:none; padding:12px 20px; border-radius:40px; font-weight:700; cursor:pointer; color:#03231c; font-size:0.9rem; transition:0.2s; }
-    button:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
-    button:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,204,136,0.4); }
-    .badge-add { background:rgba(0,204,136,0.15); padding:8px 18px; border-radius:40px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:8px; margin-right:10px; margin-bottom:10px; }
-    .badge-add:active { transform:scale(0.95); }
-    .request-list-container { max-height:350px; overflow-y:auto; margin-top:16px; }
-    .request-item { background:#f8fafc; border-radius:20px; padding:14px; margin-bottom:12px; display:flex; justify-content:space-between; flex-wrap:wrap; align-items:center; }
-    body.dark .request-item { background:rgba(0,0,0,0.3); }
-    .request-details { flex:2; font-size:0.85rem; }
-    .claim-detail { margin-left:16px; padding-left:8px; border-left:2px solid #00cc88; margin-top:6px; }
-    .btn-icon { background:none; padding:6px 12px; margin-left:6px; font-size:0.75rem; }
-    .chat-area { height:450px; display:flex; flex-direction:column; }
-    .chat-messages { flex:1; overflow-y:auto; margin-bottom:16px; padding:8px; background:#f9fafc; border-radius:24px; }
-    body.dark .chat-messages { background:rgba(0,0,0,0.3); }
-    .msg-user { text-align:right; margin:10px 0; color:#00aa6e; font-weight:600; }
-    .msg-ai { background:#eef2ff; padding:10px 16px; border-radius:24px; display:inline-block; max-width:85%; margin:6px 0; border-left:3px solid #00cc88; }
-    body.dark .msg-ai { background:rgba(0,255,170,0.1); color:#e0ffe8; }
-    .flex-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
-    .history-item { background:#f8fafc; border-radius:20px; padding:14px; margin-bottom:12px; }
-    body.dark .history-item { background:rgba(0,0,0,0.3); }
-    .file-feedback { font-size:0.8rem; margin-top:6px; color:#00aa6e; display:flex; align-items:center; gap:6px; }
-    @media (max-width:768px) { .two-columns { grid-template-columns:1fr; } .header { flex-direction:column; text-align:center; } .tab { padding:6px 16px; font-size:0.8rem; } .section-title { font-size:1.1rem; } }
-    .modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:flex; align-items:center; justify-content:center; z-index:2000; }
-    .modal-content { background:white; border-radius:32px; padding:24px; max-width:600px; width:90%; max-height:85vh; overflow:auto; }
-    body.dark .modal-content { background:#152b24; color:#e0f2e9; }
-    .error-msg { color:#dc3545; font-size:0.8rem; margin-top:4px; }
-    .balance-badge { background:#00cc88; color:#03231c; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:600; margin-left:8px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Versafac HR - Smart Leave & Claim System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f4f8;
+            color: #1a2c3e;
+            padding: 16px;
+            transition: all 0.3s ease;
+        }
+        body.dark {
+            background: #0b1a18;
+            color: #e0f2e9;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 12px 20px;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        body.dark .header {
+            background: rgba(20,35,30,0.9);
+            border-bottom: 1px solid rgba(0,255,170,0.3);
+        }
+        .logo h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00aa6e, #00e6a0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo p {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .lang-btn, .mode-btn {
+            background: #eef2f8;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        body.dark .lang-btn, body.dark .mode-btn {
+            background: rgba(0,255,170,0.15);
+            color: #b3ffe0;
+        }
+        .admin-btn {
+            background: #00aa6e;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            box-shadow: 0 2px 8px rgba(0,170,110,0.3);
+        }
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,170,110,0.4);
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #eef2f8;
+            color: #2c3e50;
+            border: none;
+        }
+        body.dark .tab {
+            background: rgba(255,255,255,0.1);
+            color: #ccf0e5;
+        }
+        .tab.active {
+            background: #00cc88;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,204,136,0.3);
+        }
+        body.dark .tab.active {
+            background: linear-gradient(105deg, #00aa6e, #00e0a0);
+            color: #03100c;
+        }
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        .card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            transition: 0.2s;
+        }
+        body.dark .card {
+            background: rgba(20,35,30,0.8);
+            border: 1px solid rgba(0,255,170,0.2);
+        }
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 28px;
+            border: 1px solid #dce5ef;
+            background: white;
+            font-family: inherit;
+        }
+        body.dark input, body.dark select, body.dark textarea {
+            background: rgba(0,0,0,0.5);
+            border-color: rgba(0,255,170,0.4);
+            color: #edfff5;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #00cc88;
+            box-shadow: 0 0 0 2px rgba(0,204,136,0.2);
+        }
+        button {
+            background: linear-gradient(100deg, #00b377, #00e6a0);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #03231c;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(0,204,136,0.4);
+        }
+        .badge-add {
+            background: rgba(0,204,136,0.15);
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .badge-add:active {
+            transform: scale(0.95);
+        }
+        .request-list-container {
+            max-height: 350px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+        .request-item {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        body.dark .request-item {
+            background: rgba(0,0,0,0.3);
+        }
+        .request-details {
+            flex: 2;
+            font-size: 0.85rem;
+        }
+        .claim-detail {
+            margin-left: 16px;
+            padding-left: 8px;
+            border-left: 2px solid #00cc88;
+            margin-top: 6px;
+        }
+        .btn-icon {
+            background: none;
+            padding: 6px 12px;
+            margin-left: 6px;
+            font-size: 0.75rem;
+        }
+        .chat-area {
+            height: 450px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            padding: 8px;
+            background: #f9fafc;
+            border-radius: 24px;
+        }
+        body.dark .chat-messages {
+            background: rgba(0,0,0,0.3);
+        }
+        .msg-user {
+            text-align: right;
+            margin: 10px 0;
+            color: #00aa6e;
+            font-weight: 600;
+        }
+        .msg-ai {
+            background: #eef2ff;
+            padding: 10px 16px;
+            border-radius: 24px;
+            display: inline-block;
+            max-width: 85%;
+            margin: 6px 0;
+            border-left: 3px solid #00cc88;
+        }
+        body.dark .msg-ai {
+            background: rgba(0,255,170,0.1);
+            color: #e0ffe8;
+        }
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .history-item {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        body.dark .history-item {
+            background: rgba(0,0,0,0.3);
+        }
+        .file-feedback {
+            font-size: 0.8rem;
+            margin-top: 6px;
+            color: #00aa6e;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        @media (max-width:768px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .tab {
+                padding: 6px 16px;
+                font-size: 0.8rem;
+            }
+            .section-title {
+                font-size: 1.1rem;
+            }
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 32px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh;
+            overflow: auto;
+        }
+        body.dark .modal-content {
+            background: #152b24;
+            color: #e0f2e9;
+        }
+        .error-msg {
+            color: #dc3545;
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
+        .balance-badge {
+            background: #00cc88;
+            color: #03231c;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <div class="logo"><h1><i class="fas fa-leaf"></i> Versafac HR</h1><p id="subtitle">Smart Leave & Claim System</p></div>
-    <div class="controls">
-      <button class="lang-btn" id="langToggle"><i class="fas fa-globe"></i> <span id="langText">English</span></button>
-      <button class="mode-btn" id="modeToggle"><i class="fas fa-moon"></i> <span id="modeText">Dark</span></button>
-      <a href="/admin" target="_blank" class="admin-btn"><i class="fas fa-user-shield"></i> <span id="adminBtnText">HR/Manager Access</span></a>
-    </div>
-  </div>
-  <div class="tabs">
-    <button class="tab active" data-tab="request" id="tabRequest">📋 Request</button>
-    <button class="tab" data-tab="chat" id="tabChat">🤖 AI Assistant</button>
-    <button class="tab" data-tab="history" id="tabHistory">📜 History</button>
-    <button class="tab" data-tab="calendar" id="tabCalendar">📅 Calendar</button>
-  </div>
-
-  <div id="request-tab" class="tab-pane active">
-    <div class="two-columns">
-      <div class="card">
-        <div class="section-title"><i class="fas fa-user-circle"></i> <span id="staffInfoTitle">Staff Information</span></div>
-        <div class="form-group"><label id="emailLabel">📧 Email</label><input type="email" id="reqEmail" placeholder="staff@versafac.com"></div>
-        <div class="form-group"><label id="nameLabel">👤 Full Name</label><input type="text" id="reqName" placeholder="Full name"></div>
-        <div class="section-title"><i class="fas fa-plus-circle"></i> <span id="addRequestTitle">Add Request</span></div>
-        <div id="badgeContainer">
-          <div class="badge-add" data-type="leave" id="leaveBadge"><i class="fas fa-calendar-alt"></i> <span>Leave</span></div>
-          <div class="badge-add" data-type="ot" id="otBadge"><i class="fas fa-clock"></i> <span>Overtime</span></div>
-          <div class="badge-add" data-type="claim" id="claimBadge"><i class="fas fa-receipt"></i> <span>Claim</span></div>
+    <div class="header">
+        <div class="logo">
+            <h1><i class="fas fa-leaf"></i> Versafac HR</h1>
+            <p id="subtitle">Smart Leave & Claim System</p>
         </div>
-        <div class="section-title" style="margin-top:24px; font-size:1rem;"><i class="fas fa-paperclip"></i> <span id="attachReceiptTitle">Attach Receipt</span></div>
-        <div class="flex-row">
-          <div style="flex:1">
-            <select id="receiptType">
-              <option>Meal</option>
-              <option>TNG</option>
-              <option>Hotel</option>
-              <option>Item</option>
-            </select>
-          </div>
-          <div style="flex:2">
-            <input type="text" id="receiptDesc" placeholder="Description (e.g., Dinner)">
-          </div>
-          <div style="flex:2">
-            <label style="display:block;font-size:0.8rem;margin-bottom:4px;">Choose File (PDF or Image)</label>
-            <input type="file" id="receiptFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp" style="padding:8px;">
-            <label for="receiptFile" style="font-size:0.7rem;color:#6b7280;margin-top:4px;display:block;">Accepted: PDF, JPG, PNG, GIF</label>
-          </div>
-          <button id="uploadReceiptBtn"><i class="fas fa-upload"></i> <span id="uploadBtnText">Upload</span></button>
+        <div class="controls">
+            <button class="lang-btn" id="langToggle"><i class="fas fa-globe"></i> <span id="langText">English</span></button>
+            <button class="mode-btn" id="modeToggle"><i class="fas fa-moon"></i> <span id="modeText">Dark</span></button>
+            <a href="/admin" target="_blank" class="admin-btn"><i class="fas fa-user-shield"></i> <span id="adminBtnText">HR/Manager Access</span></a>
         </div>
-        <div id="uploadFeedback" class="file-feedback"></div>
-      </div>
-      <div class="card">
-        <div class="section-title"><i class="fas fa-list-check"></i> <span id="requestListTitle">Request List</span> <span id="reqCount">(0)</span></div>
-        <div id="requestsList" class="request-list-container"><div style="text-align:center; padding:30px;" id="emptyMsg">No requests yet</div></div>
-        <button id="submitAllBtn" style="width:100%; margin-top:16px;"><i class="fas fa-paper-plane"></i> <span id="submitAllText">Submit All (One Click)</span></button>
-        <div id="submitResult" style="margin-top:16px; padding:12px; border-radius:28px; display:none;"></div>
-      </div>
     </div>
-  </div>
+    <div class="tabs">
+        <button class="tab active" data-tab="request" id="tabRequest">📋 Request</button>
+        <button class="tab" data-tab="chat" id="tabChat">🤖 AI Assistant</button>
+        <button class="tab" data-tab="history" id="tabHistory">📜 History</button>
+        <button class="tab" data-tab="calendar" id="tabCalendar">📅 Calendar</button>
+    </div>
 
-  <div id="chat-tab" class="tab-pane" style="display:none;">
-    <div class="card chat-area">
-      <div class="section-title"><i class="fas fa-robot"></i> <span id="assistantTitle">AI Assistant</span></div>
-      <div id="chatBox" class="chat-messages"><div class="msg-ai" id="welcomeMsg">✨ Hi! I'm your HR assistant. Ask me about leave, claims, or overtime.</div></div>
-      <div class="flex-row" style="align-items:center;">
-        <input type="email" id="chatEmail" placeholder="Your email" style="flex:1">
-        <input type="text" id="chatInput" placeholder="Type your question..." style="flex:3">
-        <button id="sendChatBtn"><i class="fas fa-paper-plane"></i> <span id="sendBtnText">Send</span></button>
-      </div>
+    <div id="request-tab" class="tab-pane active">
+        <div class="two-columns">
+            <div class="card">
+                <div class="section-title"><i class="fas fa-user-circle"></i> <span id="staffInfoTitle">Staff Information</span></div>
+                <div class="form-group"><label id="emailLabel">📧 Email</label><input type="email" id="reqEmail" placeholder="staff@versafac.com"></div>
+                <div class="form-group"><label id="nameLabel">👤 Full Name</label><input type="text" id="reqName" placeholder="Full name"></div>
+                <div class="section-title"><i class="fas fa-plus-circle"></i> <span id="addRequestTitle">Add Request</span></div>
+                <div id="badgeContainer">
+                    <div class="badge-add" data-type="leave" id="leaveBadge"><i class="fas fa-calendar-alt"></i> <span>Leave</span></div>
+                    <div class="badge-add" data-type="ot" id="otBadge"><i class="fas fa-clock"></i> <span>Overtime</span></div>
+                    <div class="badge-add" data-type="claim" id="claimBadge"><i class="fas fa-receipt"></i> <span>Claim</span></div>
+                </div>
+                <div class="section-title" style="margin-top:24px; font-size:1rem;"><i class="fas fa-paperclip"></i> <span id="attachReceiptTitle">Attach Receipt</span></div>
+                <div class="flex-row">
+                    <div style="flex:1">
+                        <select id="receiptType">
+                            <option>Meal</option>
+                            <option>TNG</option>
+                            <option>Hotel</option>
+                            <option>Item</option>
+                        </select>
+                    </div>
+                    <div style="flex:2">
+                        <input type="text" id="receiptDesc" placeholder="Description (e.g., Dinner)">
+                    </div>
+                    <div style="flex:2">
+                        <label style="display:block;font-size:0.8rem;margin-bottom:4px;">Choose File (PDF or Image)</label>
+                        <input type="file" id="receiptFile" accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp" style="padding:8px;">
+                        <label for="receiptFile" style="font-size:0.7rem;color:#6b7280;margin-top:4px;display:block;">Accepted: PDF, JPG, PNG, GIF</label>
+                    </div>
+                    <button id="uploadReceiptBtn"><i class="fas fa-upload"></i> <span id="uploadBtnText">Upload</span></button>
+                </div>
+                <div id="uploadFeedback" class="file-feedback"></div>
+            </div>
+            <div class="card">
+                <div class="section-title"><i class="fas fa-list-check"></i> <span id="requestListTitle">Request List</span> <span id="reqCount">(0)</span></div>
+                <div id="requestsList" class="request-list-container"><div style="text-align:center; padding:30px;" id="emptyMsg">No requests yet</div></div>
+                <button id="submitAllBtn" style="width:100%; margin-top:16px;"><i class="fas fa-paper-plane"></i> <span id="submitAllText">Submit All (One Click)</span></button>
+                <div id="submitResult" style="margin-top:16px; padding:12px; border-radius:28px; display:none;"></div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div id="history-tab" class="tab-pane" style="display:none;">
-    <div class="card">
-      <div class="section-title"><i class="fas fa-history"></i> <span id="historyTitle">Submission History</span></div>
-      <div class="flex-row" style="margin-bottom:16px;"><input type="email" id="historyEmail" placeholder="Email" style="flex:2"><button id="loadHistoryBtn"><i class="fas fa-search"></i> <span id="loadBtnText">Load</span></button></div>
-      <div id="historyList" style="max-height:500px; overflow-y:auto;"></div>
+    <div id="chat-tab" class="tab-pane" style="display:none;">
+        <div class="card chat-area">
+            <div class="section-title"><i class="fas fa-robot"></i> <span id="assistantTitle">AI Assistant</span></div>
+            <div id="chatBox" class="chat-messages"><div class="msg-ai" id="welcomeMsg">✨ Hi! I'm your HR assistant. Ask me about leave, claims, or overtime.</div></div>
+            <div class="flex-row" style="align-items:center;">
+                <input type="email" id="chatEmail" placeholder="Your email" style="flex:1">
+                <input type="text" id="chatInput" placeholder="Type your question..." style="flex:3">
+                <button id="sendChatBtn"><i class="fas fa-paper-plane"></i> <span id="sendBtnText">Send</span></button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div id="calendar-tab" class="tab-pane" style="display:none;">
-    <div class="card">
-      <div class="section-title"><i class="fas fa-calendar-alt"></i> <span id="calendarTitle">Employee Leave Calendar</span></div>
-      <div class="form-group">
-        <label id="calendarMonthLabel">Select Month</label>
-        <input type="month" id="calendarMonth" style="width:100%;">
-      </div>
-      <div id="calendarView" style="overflow-x:auto; margin-top:16px;"></div>
+    <div id="history-tab" class="tab-pane" style="display:none;">
+        <div class="card">
+            <div class="section-title"><i class="fas fa-history"></i> <span id="historyTitle">Submission History</span></div>
+            <div class="flex-row" style="margin-bottom:16px;"><input type="email" id="historyEmail" placeholder="Email" style="flex:2"><button id="loadHistoryBtn"><i class="fas fa-search"></i> <span id="loadBtnText">Load</span></button></div>
+            <div id="historyList" style="max-height:500px; overflow-y:auto;"></div>
+        </div>
     </div>
-  </div>
+
+    <div id="calendar-tab" class="tab-pane" style="display:none;">
+        <div class="card">
+            <div class="section-title"><i class="fas fa-calendar-alt"></i> <span id="calendarTitle">Employee Leave Calendar</span></div>
+            <div class="form-group">
+                <label id="calendarMonthLabel">Select Month</label>
+                <input type="month" id="calendarMonth" style="width:100%;">
+            </div>
+            <div id="calendarView" style="overflow-x:auto; margin-top:16px;"></div>
+        </div>
+    </div>
 </div>
 
 <script>
 (function() {
-  // ========== VARIABLES ==========
-  let isModalOpen = false;
-  let isSubmitting = false;
-  let isUploading = false;
-  let isSending = false;
-  let isLoading = false;
-  let isAddingItem = false;
-  let isConfirming = false;
-  let isBadgeClicking = false;
-  let isAddingEditItem = false;
-  
-  let requests = [];
-  let nextId = 1;
-  let currentLang = 'en';
-  let currentBalance = 0;
-  
-  const reqEmail = document.getElementById('reqEmail');
-  const reqName = document.getElementById('reqName');
-  const requestsContainer = document.getElementById('requestsList');
-  const submitAllBtn = document.getElementById('submitAllBtn');
-  const submitResultDiv = document.getElementById('submitResult');
-  const langToggle = document.getElementById('langToggle');
-  const modeToggle = document.getElementById('modeToggle');
-  const body = document.body;
-  const fileInput = document.getElementById('receiptFile');
-  const uploadFeedback = document.getElementById('uploadFeedback');
-  const adminBtnSpan = document.getElementById('adminBtnText');
-  const uploadBtn = document.getElementById('uploadReceiptBtn');
-  const sendChatBtn = document.getElementById('sendChatBtn');
-  const loadHistoryBtn = document.getElementById('loadHistoryBtn');
-  
-  // ========== TRANSLATIONS ==========
-  const translations = {
-    ms: {
-      subtitle: "Sistem Cuti & Tuntutan Pintar",
-      langText: "Melayu",
-      modeText: "Gelap",
-      tabRequest: "📋 Permohonan",
-      tabChat: "🤖 AI Assistant",
-      tabHistory: "📜 Sejarah",
-      tabCalendar: "📅 Kalendar",
-      staffInfoTitle: "Maklumat Staf",
-      emailLabel: "📧 Email",
-      nameLabel: "👤 Nama Penuh",
-      addRequestTitle: "Tambah Permohonan",
-      leaveBadge: "Cuti",
-      otBadge: "Lebih Masa",
-      claimBadge: "Tuntutan",
-      attachReceiptTitle: "Lampirkan Resit",
-      uploadBtnText: "Muat Naik",
-      requestListTitle: "Senarai Permohonan",
-      emptyMsg: "Belum ada permohonan",
-      submitAllText: "Hantar Semua (Satu Klik)",
-      assistantTitle: "Pembantu AI",
-      welcomeMsg: "✨ Hai! Saya pembantu HR. Tanya apa sahaja tentang cuti, tuntutan, atau lebih masa.",
-      sendBtnText: "Hantar",
-      historyTitle: "Sejarah Permohonan",
-      loadBtnText: "Muat",
-      calendarTitle: "Kalendar Cuti Pekerja",
-      calendarMonthLabel: "Pilih Bulan",
-      uploadOk: "Resit berjaya dimuat naik",
-      uploadFail: "Muat naik gagal",
-      fileSelected: "Fail dipilih: ",
-      submitSuccess: "Semua permohonan berjaya dihantar!",
-      submitFail: "Ralat",
-      waiting: "Memproses...",
-      leaveInsufficient: "Baki cuti tahunan tidak mencukupi! Baki anda: ",
-      pleaseEnterEmailName: "Sila isi email dan nama penuh terlebih dahulu.",
-      staffNotRegistered: "Email tidak berdaftar dalam sistem. Sila hubungi HR.",
-      deleteConfirm: "Padam permohonan ini? Tindakan ini tidak boleh dibatalkan.",
-      deleteSuccess: "Berjaya dipadam",
-      deleteError: "Gagal memadam",
-      adminBtnText: "Akses HR/Manager",
-      pleaseWait: "Sila tunggu, sedang diproses...",
-      selectFile: "Pilih fail"
-    },
-    en: {
-      subtitle: "Smart Leave & Claim System",
-      langText: "English",
-      modeText: "Dark",
-      tabRequest: "📋 Request",
-      tabChat: "🤖 AI Assistant",
-      tabHistory: "📜 History",
-      tabCalendar: "📅 Calendar",
-      staffInfoTitle: "Staff Information",
-      emailLabel: "📧 Email",
-      nameLabel: "👤 Full Name",
-      addRequestTitle: "Add Request",
-      leaveBadge: "Leave",
-      otBadge: "Overtime",
-      claimBadge: "Claim",
-      attachReceiptTitle: "Attach Receipt",
-      uploadBtnText: "Upload",
-      requestListTitle: "Request List",
-      emptyMsg: "No requests yet",
-      submitAllText: "Submit All (One Click)",
-      assistantTitle: "AI Assistant",
-      welcomeMsg: "✨ Hi! I'm your HR assistant. Ask me about leave, claims, or overtime.",
-      sendBtnText: "Send",
-      historyTitle: "Submission History",
-      loadBtnText: "Load",
-      calendarTitle: "Employee Leave Calendar",
-      calendarMonthLabel: "Select Month",
-      uploadOk: "Receipt uploaded successfully",
-      uploadFail: "Upload failed",
-      fileSelected: "File selected: ",
-      submitSuccess: "All requests submitted successfully!",
-      submitFail: "Error",
-      waiting: "Processing...",
-      leaveInsufficient: "Annual leave balance insufficient! Your balance: ",
-      pleaseEnterEmailName: "Please enter email and full name first.",
-      staffNotRegistered: "Email not registered in system. Please contact HR.",
-      deleteConfirm: "Delete this request? This cannot be undone.",
-      deleteSuccess: "Deleted successfully",
-      deleteError: "Delete failed",
-      adminBtnText: "HR/Manager Access",
-      pleaseWait: "Please wait, processing...",
-      selectFile: "Select a file"
-    }
-  };
-  
-  // ========== FUNCTIONS ==========
-  
-  function applyUILanguage() {
-    const t = translations[currentLang];
-    document.getElementById('subtitle').innerText = t.subtitle;
-    document.getElementById('langText').innerText = t.langText;
-    document.getElementById('modeText').innerText = t.modeText;
-    document.getElementById('tabRequest').innerHTML = t.tabRequest;
-    document.getElementById('tabChat').innerHTML = t.tabChat;
-    document.getElementById('tabHistory').innerHTML = t.tabHistory;
-    document.getElementById('tabCalendar').innerHTML = t.tabCalendar;
-    document.getElementById('staffInfoTitle').innerText = t.staffInfoTitle;
-    document.getElementById('emailLabel').innerText = t.emailLabel;
-    document.getElementById('nameLabel').innerText = t.nameLabel;
-    document.getElementById('addRequestTitle').innerText = t.addRequestTitle;
-    document.querySelector('label[for="receiptFile"]')?.innerText = t.selectFile || 'Select a file';
+    var isModalOpen = false;
+    var isSubmitting = false;
+    var isUploading = false;
+    var isSending = false;
+    var isLoading = false;
+    var isAddingItem = false;
+    var isConfirming = false;
+    var isBadgeClicking = false;
+    var isAddingEditItem = false;
     
-    const leaveSpan = document.querySelector('#leaveBadge span');
-    if (leaveSpan) leaveSpan.innerText = t.leaveBadge;
-    const otSpan = document.querySelector('#otBadge span');
-    if (otSpan) otSpan.innerText = t.otBadge;
-    const claimSpan = document.querySelector('#claimBadge span');
-    if (claimSpan) claimSpan.innerText = t.claimBadge;
+    var requests = [];
+    var nextId = 1;
+    var currentLang = 'en';
+    var currentBalance = 0;
     
-    document.getElementById('attachReceiptTitle').innerText = t.attachReceiptTitle;
-    document.getElementById('uploadBtnText').innerText = t.uploadBtnText;
-    document.getElementById('requestListTitle').innerHTML = t.requestListTitle;
-    document.getElementById('calendarTitle').innerText = t.calendarTitle;
-    document.getElementById('calendarMonthLabel').innerText = t.calendarMonthLabel;
+    var reqEmail = document.getElementById('reqEmail');
+    var reqName = document.getElementById('reqName');
+    var requestsContainer = document.getElementById('requestsList');
+    var submitAllBtn = document.getElementById('submitAllBtn');
+    var submitResultDiv = document.getElementById('submitResult');
+    var langToggle = document.getElementById('langToggle');
+    var modeToggle = document.getElementById('modeToggle');
+    var body = document.body;
+    var fileInput = document.getElementById('receiptFile');
+    var uploadFeedback = document.getElementById('uploadFeedback');
+    var uploadBtn = document.getElementById('uploadReceiptBtn');
+    var sendChatBtn = document.getElementById('sendChatBtn');
+    var loadHistoryBtn = document.getElementById('loadHistoryBtn');
     
-    if (requests.length === 0) {
-      const emptyDiv = document.getElementById('emptyMsg');
-      if (emptyDiv) emptyDiv.innerText = t.emptyMsg;
-    }
-    document.getElementById('submitAllText').innerText = t.submitAllText;
-    document.getElementById('assistantTitle').innerText = t.assistantTitle;
-    document.getElementById('welcomeMsg').innerText = t.welcomeMsg;
-    document.getElementById('sendBtnText').innerText = t.sendBtnText;
-    document.getElementById('historyTitle').innerText = t.historyTitle;
-    document.getElementById('loadBtnText').innerText = t.loadBtnText;
-    document.getElementById('chatEmail').placeholder = t.emailLabel.split(' ')[1] || 'Email';
-    document.getElementById('chatInput').placeholder = t.sendBtnText === 'Send' ? 'Type your question...' : 'Taip soalan...';
-    document.getElementById('historyEmail').placeholder = t.emailLabel.split(' ')[1] || 'Email';
-    document.getElementById('receiptDesc').placeholder = t.sendBtnText === 'Send' ? 'Description (e.g., Dinner)' : 'Keterangan (cth: Makan malam)';
-    if (adminBtnSpan) adminBtnSpan.innerText = t.adminBtnText;
-    
-    // Reload calendar if visible
-    const calendarTab = document.getElementById('calendar-tab');
-    if (calendarTab.style.display !== 'none') {
-      setTimeout(loadCalendar, 100);
-    }
-  }
-  
-  // Dark mode
-  if (localStorage.getItem('versafac_mode') === 'dark') body.classList.add('dark');
-  modeToggle.onclick = () => {
-    body.classList.toggle('dark');
-    localStorage.setItem('versafac_mode', body.classList.contains('dark') ? 'dark' : 'light');
-  };
-  
-  // Language toggle
-  langToggle.onclick = () => {
-    currentLang = currentLang === 'ms' ? 'en' : 'ms';
-    applyUILanguage();
-  };
-  
-  async function checkStaffAndBalance(email) {
-    try {
-      const res = await fetch('/api/check-staff', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json();
-      return { valid: data.valid === true, balance: data.balance || 0 };
-    } catch(e) {
-      return { valid: false, balance: 0 };
-    }
-  }
-  
-  async function validateBeforeAction() {
-    const email = reqEmail.value.trim();
-    const name = reqName.value.trim();
-    if (!email || !name) {
-      alert(translations[currentLang].pleaseEnterEmailName);
-      return false;
-    }
-    const { valid, balance } = await checkStaffAndBalance(email);
-    if (!valid) {
-      alert(translations[currentLang].staffNotRegistered);
-      return false;
-    }
-    currentBalance = balance;
-    return true;
-  }
-  
-  function formatClaimDetail(it) {
-    if (it.claimType === 'Distance') return '🚗 ' + (it.from || '?') + ' → ' + (it.to || '?') + ' (' + (it.km || 0) + ' km) = RM' + it.amount.toFixed(2);
-    if (it.claimType === 'Hotel') return '🏨 ' + (it.checkIn || '?') + ' → ' + (it.checkOut || '?') + ' = RM' + it.amount.toFixed(2);
-    if (it.claimType === 'Meal') return '🍽️ Meal = RM' + it.amount.toFixed(2);
-    if (it.claimType === 'Touch n Go') return '💳 Touch n Go = RM' + it.amount.toFixed(2);
-    return '📦 Item: ' + (it.itemDesc || '') + ' = RM' + it.amount.toFixed(2);
-  }
-  
-  function renderRequests() {
-    const t = translations[currentLang];
-    if (!requests.length) {
-      requestsContainer.innerHTML = '<div style="text-align:center; padding:30px;" id="emptyMsg">' + t.emptyMsg + '</div>';
-      document.getElementById('reqCount').innerText = '(0)';
-      return;
-    }
-    let html = '';
-    for (let r of requests) {
-      if (r.type === 'leave') {
-        html += '<div class="request-item"><div class="request-details"><i class="fas fa-calendar-week"></i> <strong>' + t.leaveBadge + '</strong> ' + r.leaveType + ' (' + r.halfDay + ')<br>' + r.startDate + ' → ' + r.endDate + '</div><div><button class="edit-req btn-icon" data-id="' + r.id + '"><i class="fas fa-edit"></i></button><button class="remove-req btn-icon" data-id="' + r.id + '"><i class="fas fa-trash"></i></button></div></div>';
-      } else if (r.type === 'ot') {
-        html += '<div class="request-item"><div class="request-details"><i class="fas fa-stopwatch"></i> <strong>' + t.otBadge + '</strong> ' + r.hours + 'h = RM' + r.amount.toFixed(2) + '<br>' + r.startDateTime + ' → ' + r.endDateTime + '<br>📍 ' + (r.site || '-') + '</div><div><button class="edit-req btn-icon" data-id="' + r.id + '"><i class="fas fa-edit"></i></button><button class="remove-req btn-icon" data-id="' + r.id + '"><i class="fas fa-trash"></i></button></div></div>';
-      } else if (r.type === 'claim') {
-        let itemsHtml = '';
-        for (let it of r.items) itemsHtml += '<div class="claim-detail">' + formatClaimDetail(it) + '</div>';
-        html += '<div class="request-item"><div class="request-details"><i class="fas fa-receipt"></i> <strong>' + t.claimBadge + '</strong> (Date: ' + r.claimDate + ')<br>' + itemsHtml + '</div><div><button class="edit-req btn-icon" data-id="' + r.id + '"><i class="fas fa-edit"></i></button><button class="remove-req btn-icon" data-id="' + r.id + '"><i class="fas fa-trash"></i></button></div></div>';
-      }
-    }
-    requestsContainer.innerHTML = html;
-    document.getElementById('reqCount').innerText = '(' + requests.length + ')';
-    
-    document.querySelectorAll('.remove-req').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = parseInt(btn.dataset.id);
-        requests = requests.filter(r => r.id !== id);
-        renderRequests();
-      });
-    });
-    
-    document.querySelectorAll('.edit-req').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = parseInt(btn.dataset.id);
-        const req = requests.find(r => r.id === id);
-        if (req) openEditModalForLocal(req);
-      });
-    });
-  }
-  
-  function calculateLeaveDaysFront(startDate, endDate, halfDay) {
-    if (!startDate || !endDate) return 0;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) return 0;
-    const diffTime = Math.abs(end - start);
-    let days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    if (halfDay !== 'full') days = days - 0.5;
-    return days > 0 ? days : 0;
-  }
-  
-  // ========== LEAVE CALENDAR ==========
-  async function loadCalendar() {
-    const monthInput = document.getElementById('calendarMonth');
-    if (!monthInput || !monthInput.value) return;
-    
-    const [year, month] = monthInput.value.split('-');
-    const calendarView = document.getElementById('calendarView');
-    const t = translations[currentLang];
-    
-    try {
-      const res = await fetch('/api/get-leave-calendar?year=' + year + '&month=' + month);
-      const data = await res.json();
-      
-      if (!data.success) {
-        calendarView.innerHTML = '<p>Error loading calendar</p>';
-        return;
-      }
-      
-      const daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
-      const firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
-      
-      const weekdays = currentLang === 'ms' 
-        ? ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab']
-        : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      
-      const monthNames = currentLang === 'ms'
-        ? ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember']
-        : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-      
-      const table = document.createElement('table');
-      table.style.width = '100%';
-      table.style.borderCollapse = 'collapse';
-      table.style.background = 'white';
-      table.style.borderRadius = '16px';
-      
-      const caption = document.createElement('caption');
-      caption.textContent = monthNames[parseInt(month) - 1] + ' ' + year;
-      caption.style.fontSize = '1.2rem';
-      caption.style.fontWeight = 'bold';
-      caption.style.padding = '12px';
-      caption.style.background = '#00aa6e';
-      caption.style.color = 'white';
-      caption.style.borderRadius = '16px 16px 0 0';
-      table.appendChild(caption);
-      
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      headerRow.style.background = '#f0f4f8';
-      
-      for (let w of weekdays) {
-        const th = document.createElement('th');
-        th.style.padding = '12px';
-        th.style.border = '1px solid #ddd';
-        th.style.textAlign = 'center';
-        th.style.fontWeight = '600';
-        th.textContent = w;
-        headerRow.appendChild(th);
-      }
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-      
-      const tbody = document.createElement('tbody');
-      let currentRow = document.createElement('tr');
-      
-      for (let i = 0; i < firstDay; i++) {
-        const td = document.createElement('td');
-        td.style.padding = '8px';
-        td.style.border = '1px solid #ddd';
-        td.style.verticalAlign = 'top';
-        td.style.height = '80px';
-        td.style.background = '#f9f9f9';
-        td.innerHTML = '&nbsp;';
-        currentRow.appendChild(td);
-      }
-      
-      const leaveTypeMap = {
-        'Annual': currentLang === 'ms' ? 'Tahunan' : 'Annual',
-        'Sick': currentLang === 'ms' ? 'Sakit' : 'Sick',
-        'Unpaid': currentLang === 'ms' ? 'Tanpa Gaji' : 'Unpaid',
-        'Maternity': currentLang === 'ms' ? 'Bersalin' : 'Maternity',
-        'Marriage': currentLang === 'ms' ? 'Kahwin' : 'Marriage',
-        'Paternal': currentLang === 'ms' ? 'Bapa' : 'Paternal',
-        'Compassionate': currentLang === 'ms' ? 'Kemalangan' : 'Compassionate'
-      };
-      
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-        
-        const td = document.createElement('td');
-        td.style.padding = '8px';
-        td.style.border = '1px solid #ddd';
-        td.style.verticalAlign = 'top';
-        td.style.height = '80px';
-        
-        const dateDiv = document.createElement('div');
-        dateDiv.style.fontWeight = 'bold';
-        dateDiv.style.marginBottom = '4px';
-        dateDiv.textContent = d;
-        td.appendChild(dateDiv);
-        
-        const leavesOnDay = data.leaves.filter(function(l) {
-          return l.start <= dateStr && l.end >= dateStr;
-        });
-        
-        for (let leave of leavesOnDay) {
-          const leaveDiv = document.createElement('div');
-          leaveDiv.style.background = '#00aa6e20';
-          leaveDiv.style.borderRadius = '8px';
-          leaveDiv.style.padding = '4px';
-          leaveDiv.style.margin = '2px 0';
-          leaveDiv.style.fontSize = '11px';
-          leaveDiv.innerHTML = '<strong>' + escapeHtml(leave.name) + '</strong><br>' + (leaveTypeMap[leave.type] || leave.type);
-          td.appendChild(leaveDiv);
+    var translations = {
+        ms: {
+            subtitle: "Sistem Cuti & Tuntutan Pintar",
+            langText: "Melayu",
+            modeText: "Gelap",
+            tabRequest: "📋 Permohonan",
+            tabChat: "🤖 AI Assistant",
+            tabHistory: "📜 Sejarah",
+            tabCalendar: "📅 Kalendar",
+            staffInfoTitle: "Maklumat Staf",
+            emailLabel: "📧 Email",
+            nameLabel: "👤 Nama Penuh",
+            addRequestTitle: "Tambah Permohonan",
+            leaveBadge: "Cuti",
+            otBadge: "Lebih Masa",
+            claimBadge: "Tuntutan",
+            attachReceiptTitle: "Lampirkan Resit",
+            uploadBtnText: "Muat Naik",
+            requestListTitle: "Senarai Permohonan",
+            emptyMsg: "Belum ada permohonan",
+            submitAllText: "Hantar Semua (Satu Klik)",
+            assistantTitle: "Pembantu AI",
+            welcomeMsg: "✨ Hai! Saya pembantu HR. Tanya apa sahaja tentang cuti, tuntutan, atau lebih masa.",
+            sendBtnText: "Hantar",
+            historyTitle: "Sejarah Permohonan",
+            loadBtnText: "Muat",
+            calendarTitle: "Kalendar Cuti Pekerja",
+            calendarMonthLabel: "Pilih Bulan",
+            uploadOk: "Resit berjaya dimuat naik",
+            uploadFail: "Muat naik gagal",
+            fileSelected: "Fail dipilih: ",
+            submitSuccess: "Semua permohonan berjaya dihantar!",
+            submitFail: "Ralat",
+            waiting: "Memproses...",
+            leaveInsufficient: "Baki cuti tahunan tidak mencukupi! Baki anda: ",
+            pleaseEnterEmailName: "Sila isi email dan nama penuh terlebih dahulu.",
+            staffNotRegistered: "Email tidak berdaftar dalam sistem. Sila hubungi HR.",
+            deleteConfirm: "Padam permohonan ini? Tindakan ini tidak boleh dibatalkan.",
+            deleteSuccess: "Berjaya dipadam",
+            deleteError: "Gagal memadam",
+            adminBtnText: "Akses HR/Manager",
+            pleaseWait: "Sila tunggu, sedang diproses...",
+            selectFile: "Pilih fail"
+        },
+        en: {
+            subtitle: "Smart Leave & Claim System",
+            langText: "English",
+            modeText: "Dark",
+            tabRequest: "📋 Request",
+            tabChat: "🤖 AI Assistant",
+            tabHistory: "📜 History",
+            tabCalendar: "📅 Calendar",
+            staffInfoTitle: "Staff Information",
+            emailLabel: "📧 Email",
+            nameLabel: "👤 Full Name",
+            addRequestTitle: "Add Request",
+            leaveBadge: "Leave",
+            otBadge: "Overtime",
+            claimBadge: "Claim",
+            attachReceiptTitle: "Attach Receipt",
+            uploadBtnText: "Upload",
+            requestListTitle: "Request List",
+            emptyMsg: "No requests yet",
+            submitAllText: "Submit All (One Click)",
+            assistantTitle: "AI Assistant",
+            welcomeMsg: "✨ Hi! I'm your HR assistant. Ask me about leave, claims, or overtime.",
+            sendBtnText: "Send",
+            historyTitle: "Submission History",
+            loadBtnText: "Load",
+            calendarTitle: "Employee Leave Calendar",
+            calendarMonthLabel: "Select Month",
+            uploadOk: "Receipt uploaded successfully",
+            uploadFail: "Upload failed",
+            fileSelected: "File selected: ",
+            submitSuccess: "All requests submitted successfully!",
+            submitFail: "Error",
+            waiting: "Processing...",
+            leaveInsufficient: "Annual leave balance insufficient! Your balance: ",
+            pleaseEnterEmailName: "Please enter email and full name first.",
+            staffNotRegistered: "Email not registered in system. Please contact HR.",
+            deleteConfirm: "Delete this request? This cannot be undone.",
+            deleteSuccess: "Deleted successfully",
+            deleteError: "Delete failed",
+            adminBtnText: "HR/Manager Access",
+            pleaseWait: "Please wait, processing...",
+            selectFile: "Select a file"
         }
-        
-        currentRow.appendChild(td);
-        
-        if ((firstDay + d) % 7 === 0 && d !== daysInMonth) {
-          tbody.appendChild(currentRow);
-          currentRow = document.createElement('tr');
-        }
-      }
-      
-      const remaining = 7 - ((firstDay + daysInMonth) % 7);
-      if (remaining < 7) {
-        for (let i = 0; i < remaining; i++) {
-          const td = document.createElement('td');
-          td.style.padding = '8px';
-          td.style.border = '1px solid #ddd';
-          td.style.background = '#f9f9f9';
-          td.innerHTML = '&nbsp;';
-          currentRow.appendChild(td);
-        }
-      }
-      
-      tbody.appendChild(currentRow);
-      table.appendChild(tbody);
-      
-      calendarView.innerHTML = '';
-      calendarView.appendChild(table);
-      
-    } catch (e) {
-      calendarView.innerHTML = '<p>Error: ' + e.message + '</p>';
-    }
-  }
-  
-  // Helper function for calendar
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
-  
-  // ========== MODAL FUNCTIONS ==========
-  function openEditModalForLocal(req) {
-    if (isModalOpen) {
-      alert(translations[currentLang].pleaseWait);
-      return;
-    }
-    isModalOpen = true;
-    
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'modal-overlay';
-    let inner = '';
-    
-    if (req.type === 'leave') {
-      inner = '<h3>✏️ ' + (currentLang === 'ms' ? 'Edit Cuti' : 'Edit Leave') + '</h3>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Cuti' : 'Leave Type') + '</label><select id="editLeaveType">' +
-        '<option value="Annual" ' + (req.leaveType === 'Annual' ? 'selected' : '') + '>Annual</option>' +
-        '<option value="Sick" ' + (req.leaveType === 'Sick' ? 'selected' : '') + '>Sick</option>' +
-        '<option value="Unpaid" ' + (req.leaveType === 'Unpaid' ? 'selected' : '') + '>Unpaid</option>' +
-        '<option value="Maternity" ' + (req.leaveType === 'Maternity' ? 'selected' : '') + '>Maternity</option>' +
-        '<option value="Marriage" ' + (req.leaveType === 'Marriage' ? 'selected' : '') + '>Marriage</option>' +
-        '<option value="Paternal" ' + (req.leaveType === 'Paternal' ? 'selected' : '') + '>Paternal</option>' +
-        '<option value="Compassionate" ' + (req.leaveType === 'Compassionate' ? 'selected' : '') + '>Compassionate</option>' +
-        '</select></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Separuh hari' : 'Half day') + '</label><select id="editHalf">' +
-        '<option value="full" ' + (req.halfDay === 'full' ? 'selected' : '') + '>' + (currentLang === 'ms' ? 'Penuh' : 'Full') + '</option>' +
-        '<option value="morning" ' + (req.halfDay === 'morning' ? 'selected' : '') + '>' + (currentLang === 'ms' ? 'Pagi' : 'Morning') + '</option>' +
-        '<option value="afternoon" ' + (req.halfDay === 'afternoon' ? 'selected' : '') + '>' + (currentLang === 'ms' ? 'Petang' : 'Afternoon') + '</option>' +
-        '</select></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Mula' : 'Start Date') + '</label><input type="date" id="editStart" value="' + req.startDate + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Akhir' : 'End Date') + '</label><input type="date" id="editEnd" value="' + req.endDate + '"></div>' +
-        '<div id="dateError" class="error-msg"></div>';
-    } else if (req.type === 'ot') {
-      inner = '<h3>✏️ ' + (currentLang === 'ms' ? 'Edit Lebih Masa' : 'Edit Overtime') + '</h3>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Mula' : 'Start') + '</label><input type="datetime-local" id="editStartDT" value="' + req.startDateTime + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tamat' : 'End') + '</label><input type="datetime-local" id="editEndDT" value="' + req.endDateTime + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jam' : 'Hours') + '</label><input type="number" step="0.5" id="editHours" value="' + req.hours + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jumlah (RM)' : 'Amount (RM)') + '</label><input type="number" step="0.01" id="editAmount" value="' + req.amount.toFixed(2) + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Lokasi' : 'Location') + '</label><input id="editSite" value="' + (req.site || '') + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Keterangan' : 'Description') + '</label><textarea id="editDesc" rows="2">' + (req.description || '') + '</textarea></div>';
-    } else if (req.type === 'claim') {
-      inner = '<h3>✏️ ' + (currentLang === 'ms' ? 'Edit Tuntutan' : 'Edit Claim') + '</h3>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Tuntutan' : 'Claim Date') + '</label><input type="date" id="editClaimDate" value="' + req.claimDate + '"></div>' +
-        '<div id="editClaimItemsList"></div>' +
-        '<button type="button" id="addEditClaimItem" class="btn-icon">+ ' + (currentLang === 'ms' ? 'Tambah Item' : 'Add Item') + '</button>';
-    }
-    
-    modalDiv.innerHTML = '<div class="modal-content"><div style="text-align:right"><button class="closeModal" style="background:none;font-size:24px;">&times;</button></div>' + inner + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="saveEditBtn">' + (currentLang === 'ms' ? 'Simpan' : 'Save') + '</button><button id="cancelEditBtn">' + (currentLang === 'ms' ? 'Batal' : 'Cancel') + '</button></div></div>';
-    document.body.appendChild(modalDiv);
-    
-    const closeModalHandler = () => {
-      if (document.body.contains(modalDiv)) document.body.removeChild(modalDiv);
-      isModalOpen = false;
     };
     
-    if (req.type === 'claim') {
-      let claimItems = [...req.items];
-      
-      function renderEditClaimItems() {
-        const container = document.getElementById('editClaimItemsList');
-        if (!container) return;
-        container.innerHTML = '';
-        let html = '';
-        for (let idx = 0; idx < claimItems.length; idx++) {
-          const it = claimItems[idx];
-          html += '<div style="margin-bottom:16px;border-left:3px solid #00cc88;padding:10px;border-radius:12px;" data-edit-item-index="' + idx + '">';
-          html += '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Tuntutan' : 'Claim Type') + '</label>' +
-            '<select class="editClaimTypeSelect" data-idx="' + idx + '">' +
-            '<option value="Meal" ' + (it.claimType === 'Meal' ? 'selected' : '') + '>🍽️ Meal</option>' +
-            '<option value="Touch n Go" ' + (it.claimType === 'Touch n Go' ? 'selected' : '') + '>💳 Touch n Go</option>' +
-            '<option value="Distance" ' + (it.claimType === 'Distance' ? 'selected' : '') + '>🚗 Distance</option>' +
-            '<option value="Hotel" ' + (it.claimType === 'Hotel' ? 'selected' : '') + '>🏨 Hotel</option>' +
-            '<option value="Item" ' + (it.claimType === 'Item' ? 'selected' : '') + '>📦 Item</option>' +
-            '</select></div>';
-          
-          html += '<div class="editDistFields" style="display:none;">' +
-            '<div class="form-group"><label>Dari</label><input type="text" class="editDistFrom" data-idx="' + idx + '" value="' + (it.from || '') + '"></div>' +
-            '<div class="form-group"><label>Ke</label><input type="text" class="editDistTo" data-idx="' + idx + '" value="' + (it.to || '') + '"></div>' +
-            '<div class="form-group"><label>Jarak (km)</label><input type="number" step="0.1" class="editDistKm" data-idx="' + idx + '" value="' + (it.km || '') + '"></div>' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="text" class="editDistAmount" data-idx="' + idx + '" readonly value="' + (it.amount ? it.amount.toFixed(2) : '0') + '"></div></div>';
-          
-          html += '<div class="editHotelFields" style="display:none;">' +
-            '<div class="form-group"><label>Check-in</label><input type="date" class="editHotelIn" data-idx="' + idx + '" value="' + (it.checkIn || '') + '"></div>' +
-            '<div class="form-group"><label>Check-out</label><input type="date" class="editHotelOut" data-idx="' + idx + '" value="' + (it.checkOut || '') + '"></div>' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editHotelAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<div class="editMealFields" style="display:none;">' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editMealAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<div class="editTngFields" style="display:none;">' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editTngAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<div class="editOthersFields" style="display:none;">' +
-            '<div class="form-group"><label>Keterangan</label><input type="text" class="editOthersDesc" data-idx="' + idx + '" value="' + (it.itemDesc || '') + '"></div>' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="editOthersAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<button class="removeEditItem" data-idx="' + idx + '" style="background:#dc3545; color:white; border:none; padding:4px 10px; border-radius:20px; margin-top:8px;">' + (currentLang === 'ms' ? 'Buang' : 'Remove') + '</button>';
-          html += '<hr></div>';
-        }
-        container.innerHTML = html;
+    function applyUILanguage() {
+        var t = translations[currentLang];
+        document.getElementById('subtitle').innerText = t.subtitle;
+        document.getElementById('langText').innerText = t.langText;
+        document.getElementById('modeText').innerText = t.modeText;
+        document.getElementById('tabRequest').innerHTML = t.tabRequest;
+        document.getElementById('tabChat').innerHTML = t.tabChat;
+        document.getElementById('tabHistory').innerHTML = t.tabHistory;
+        document.getElementById('tabCalendar').innerHTML = t.tabCalendar;
+        document.getElementById('staffInfoTitle').innerText = t.staffInfoTitle;
+        document.getElementById('emailLabel').innerText = t.emailLabel;
+        document.getElementById('nameLabel').innerText = t.nameLabel;
+        document.getElementById('addRequestTitle').innerText = t.addRequestTitle;
         
-        for (let i = 0; i < claimItems.length; i++) {
-          attachEditClaimEvents(i);
-        }
+        var leaveSpan = document.querySelector('#leaveBadge span');
+        if (leaveSpan) leaveSpan.innerText = t.leaveBadge;
+        var otSpan = document.querySelector('#otBadge span');
+        if (otSpan) otSpan.innerText = t.otBadge;
+        var claimSpan = document.querySelector('#claimBadge span');
+        if (claimSpan) claimSpan.innerText = t.claimBadge;
         
-        document.querySelectorAll('.removeEditItem').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            let idx = parseInt(btn.dataset.idx);
-            claimItems.splice(idx, 1);
-            renderEditClaimItems();
-          });
+        document.getElementById('attachReceiptTitle').innerText = t.attachReceiptTitle;
+        document.getElementById('uploadBtnText').innerText = t.uploadBtnText;
+        document.getElementById('requestListTitle').innerHTML = t.requestListTitle;
+        document.getElementById('calendarTitle').innerText = t.calendarTitle;
+        document.getElementById('calendarMonthLabel').innerText = t.calendarMonthLabel;
+        
+        if (requests.length === 0) {
+            var emptyDiv = document.getElementById('emptyMsg');
+            if (emptyDiv) emptyDiv.innerText = t.emptyMsg;
+        }
+        document.getElementById('submitAllText').innerText = t.submitAllText;
+        document.getElementById('assistantTitle').innerText = t.assistantTitle;
+        document.getElementById('welcomeMsg').innerText = t.welcomeMsg;
+        document.getElementById('sendBtnText').innerText = t.sendBtnText;
+        document.getElementById('historyTitle').innerText = t.historyTitle;
+        document.getElementById('loadBtnText').innerText = t.loadBtnText;
+        document.getElementById('chatEmail').placeholder = t.emailLabel.split(' ')[1] || 'Email';
+        document.getElementById('chatInput').placeholder = t.sendBtnText === 'Send' ? 'Type your question...' : 'Taip soalan...';
+        document.getElementById('historyEmail').placeholder = t.emailLabel.split(' ')[1] || 'Email';
+        document.getElementById('receiptDesc').placeholder = t.sendBtnText === 'Send' ? 'Description (e.g., Dinner)' : 'Keterangan (cth: Makan malam)';
+        document.getElementById('adminBtnText').innerText = t.adminBtnText;
+        
+        var calendarTab = document.getElementById('calendar-tab');
+        if (calendarTab.style.display !== 'none') {
+            setTimeout(loadCalendar, 100);
+        }
+    }
+    
+    if (localStorage.getItem('versafac_mode') === 'dark') body.classList.add('dark');
+    modeToggle.onclick = function() {
+        body.classList.toggle('dark');
+        localStorage.setItem('versafac_mode', body.classList.contains('dark') ? 'dark' : 'light');
+    };
+    
+    langToggle.onclick = function() {
+        currentLang = currentLang === 'ms' ? 'en' : 'ms';
+        applyUILanguage();
+    };
+    
+    function getText(key) {
+        return translations[currentLang][key] || translations.en[key];
+    }
+    
+    function validateBeforeAction() {
+        var email = reqEmail.value.trim();
+        var name = reqName.value.trim();
+        if (!email || !name) {
+            alert(getText('pleaseEnterEmailName'));
+            return false;
+        }
+        return true;
+    }
+    
+    function renderRequests() {
+        var t = translations[currentLang];
+        if (!requests.length) {
+            requestsContainer.innerHTML = '<div style="text-align:center; padding:30px;" id="emptyMsg">' + t.emptyMsg + '</div>';
+            document.getElementById('reqCount').innerText = '(0)';
+            return;
+        }
+        var html = '';
+        for (var i = 0; i < requests.length; i++) {
+            var r = requests[i];
+            html += '<div class="request-item"><div class="request-details"><strong>' + r.type + '</strong>';
+            if (r.leaveType) html += ' - ' + r.leaveType;
+            if (r.claimType) html += ' - ' + r.claimType;
+            html += '</div><div><button class="remove-req btn-icon" data-id="' + r.id + '"><i class="fas fa-trash"></i></button></div></div>';
+        }
+        requestsContainer.innerHTML = html;
+        document.getElementById('reqCount').innerText = '(' + requests.length + ')';
+        
+        document.querySelectorAll('.remove-req').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var id = parseInt(this.dataset.id);
+                requests = requests.filter(function(r) { return r.id !== id; });
+                renderRequests();
+            });
         });
-      }
-      
-      function attachEditClaimEvents(idx) {
-        const typeSel = document.querySelector('.editClaimTypeSelect[data-idx="' + idx + '"]');
-        const container = document.querySelector('[data-edit-item-index="' + idx + '"]');
-        if (!container) return;
-        
-        const distDiv = container.querySelector('.editDistFields');
-        const hotelDiv = container.querySelector('.editHotelFields');
-        const mealDiv = container.querySelector('.editMealFields');
-        const tngDiv = container.querySelector('.editTngFields');
-        const othersDiv = container.querySelector('.editOthersFields');
-        
-        function toggle() {
-          const val = typeSel.value;
-          if (distDiv) distDiv.style.display = val === 'Distance' ? 'block' : 'none';
-          if (hotelDiv) hotelDiv.style.display = val === 'Hotel' ? 'block' : 'none';
-          if (mealDiv) mealDiv.style.display = val === 'Meal' ? 'block' : 'none';
-          if (tngDiv) tngDiv.style.display = val === 'Touch n Go' ? 'block' : 'none';
-          if (othersDiv) othersDiv.style.display = val === 'Item' ? 'block' : 'none';
-          claimItems[idx].claimType = val;
-        }
-        if (typeSel) {
-          typeSel.addEventListener('change', toggle);
-          toggle();
+    }
+    
+    function showAddModal(type) {
+        if (isModalOpen) {
+            alert(getText('pleaseWait'));
+            return;
         }
         
-        const kmInp = container.querySelector('.editDistKm');
-        const distAmt = container.querySelector('.editDistAmount');
-        if (kmInp && distAmt) {
-          kmInp.addEventListener('input', async () => {
-            let km = parseFloat(kmInp.value) || 0;
-            let rate = 0.6;
-            try {
-              const res = await fetch('/api/get-settings');
-              const settings = await res.json();
-              rate = settings.distanceRate || 0.6;
-            } catch(e) { rate = 0.6; }
-            let amt = km * rate;
-            distAmt.value = amt.toFixed(2);
-            claimItems[idx].amount = amt;
-            claimItems[idx].km = km;
-          });
+        var isValid = validateBeforeAction();
+        if (!isValid) return;
+        
+        isModalOpen = true;
+        
+        var modalDiv = document.createElement('div');
+        modalDiv.className = 'modal-overlay';
+        var inner = '';
+        
+        if (type === 'leave') {
+            var today = new Date();
+            var tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            var todayStr = today.toISOString().split('T')[0];
+            var tomorrowStr = tomorrow.toISOString().split('T')[0];
+            inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Cuti Baru' : 'New Leave') + '</h3>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Cuti' : 'Leave Type') + '</label><select id="newLeaveType"><option>Annual</option><option>Sick</option><option>Unpaid</option><option>Maternity</option><option>Marriage</option><option>Paternal</option><option>Compassionate</option></select></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Separuh hari' : 'Half day') + '</label><select id="newHalf"><option value="full">' + (currentLang === 'ms' ? 'Penuh' : 'Full') + '</option><option value="morning">' + (currentLang === 'ms' ? 'Pagi' : 'Morning') + '</option><option value="afternoon">' + (currentLang === 'ms' ? 'Petang' : 'Afternoon') + '</option></select></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Mula' : 'Start Date') + '</label><input type="date" id="newStart" value="' + todayStr + '"></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Akhir' : 'End Date') + '</label><input type="date" id="newEnd" value="' + tomorrowStr + '"></div>' +
+                '<div id="dateError" class="error-msg"></div>';
+        } else if (type === 'ot') {
+            inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Lebih Masa Baru' : 'New Overtime') + '</h3>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Mula' : 'Start') + '</label><input type="datetime-local" id="newStartDT"></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tamat' : 'End') + '</label><input type="datetime-local" id="newEndDT"></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jam' : 'Hours') + '</label><input type="number" step="0.5" id="newHours"></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jumlah (RM)' : 'Amount (RM)') + '</label><input type="number" step="0.01" id="newAmount"></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Lokasi' : 'Location') + '</label><input id="newSite"></div>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Keterangan' : 'Description') + '</label><textarea id="newDesc" rows="2"></textarea></div>';
+        } else if (type === 'claim') {
+            inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Tuntutan Baru' : 'New Claim') + '</h3>' +
+                '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Tuntutan' : 'Claim Date') + '</label><input type="date" id="newClaimDate" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
+                '<div id="newClaimItemsList"></div>' +
+                '<button type="button" id="addNewClaimItem" class="btn-icon">+ ' + (currentLang === 'ms' ? 'Tambah Item' : 'Add Item') + '</button>';
         }
         
-        const fromInp = container.querySelector('.editDistFrom');
-        const toInp = container.querySelector('.editDistTo');
-        if (fromInp) fromInp.addEventListener('change', () => { claimItems[idx].from = fromInp.value; });
-        if (toInp) toInp.addEventListener('change', () => { claimItems[idx].to = toInp.value; });
+        modalDiv.innerHTML = '<div class="modal-content"><div style="text-align:right"><button class="closeModal" style="background:none;font-size:24px;border:none;cursor:pointer;">&times;</button></div>' + inner + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="confirmAdd">' + (currentLang === 'ms' ? 'Tambah' : 'Add') + '</button><button id="cancelAdd">' + (currentLang === 'ms' ? 'Batal' : 'Cancel') + '</button></div></div>';
+        document.body.appendChild(modalDiv);
         
-        const hotelIn = container.querySelector('.editHotelIn');
-        const hotelOut = container.querySelector('.editHotelOut');
-        const hotelAmt = container.querySelector('.editHotelAmount');
-        if (hotelIn && hotelOut && hotelAmt) {
-          const updateHotel = async () => {
-            if (hotelIn.value && hotelOut.value) {
-              let nights = Math.max(1, Math.round((new Date(hotelOut.value) - new Date(hotelIn.value)) / (1000 * 60 * 60 * 24)));
-              let rate = 150;
-              try {
-                const res = await fetch('/api/get-settings');
-                const settings = await res.json();
-                rate = settings.hotelRate || 150;
-              } catch(e) { rate = 150; }
-              let amt = nights * rate;
-              hotelAmt.value = amt;
-              claimItems[idx].amount = amt;
-              claimItems[idx].checkIn = hotelIn.value;
-              claimItems[idx].checkOut = hotelOut.value;
+        function closeModalHandler() {
+            if (document.body.contains(modalDiv)) document.body.removeChild(modalDiv);
+            isModalOpen = false;
+        }
+        
+        if (type === 'ot') {
+            var startInput = document.getElementById('newStartDT');
+            var endInput = document.getElementById('newEndDT');
+            var hoursInp = document.getElementById('newHours');
+            var amtInp = document.getElementById('newAmount');
+            function updateOT() {
+                if (startInput.value && endInput.value) {
+                    var h = Math.round(((new Date(endInput.value) - new Date(startInput.value)) / 3600000) * 2) / 2;
+                    hoursInp.value = h;
+                    var rates = [15, 15, 15, 15, 15, 20, 25];
+                    var rate = rates[new Date(startInput.value).getDay()];
+                    amtInp.value = (h * rate).toFixed(2);
+                }
             }
-          };
-          hotelIn.addEventListener('change', updateHotel);
-          hotelOut.addEventListener('change', updateHotel);
-          hotelAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(hotelAmt.value) || 0; });
+            startInput.addEventListener('change', updateOT);
+            endInput.addEventListener('change', updateOT);
         }
         
-        const mealAmt = container.querySelector('.editMealAmount');
-        if (mealAmt) mealAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(mealAmt.value) || 0; });
-        
-        const tngAmt = container.querySelector('.editTngAmount');
-        if (tngAmt) tngAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(tngAmt.value) || 0; });
-        
-        const othersAmt = container.querySelector('.editOthersAmount');
-        const othersDesc = container.querySelector('.editOthersDesc');
-        if (othersAmt) othersAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(othersAmt.value) || 0; });
-        if (othersDesc) othersDesc.addEventListener('input', () => { claimItems[idx].itemDesc = othersDesc.value; });
-      }
-      
-      const addItemBtn = document.getElementById('addEditClaimItem');
-      if (addItemBtn) {
-        addItemBtn.onclick = () => {
-          if (isAddingEditItem) return;
-          isAddingEditItem = true;
-          claimItems.push({ claimType: 'Meal', amount: 0 });
-          renderEditClaimItems();
-          setTimeout(() => { isAddingEditItem = false; }, 500);
-        };
-      }
-      
-      renderEditClaimItems();
-      
-      document.getElementById('saveEditBtn').onclick = () => {
-        const newClaimDate = document.getElementById('editClaimDate').value;
-        const validItems = claimItems.filter(i => i.amount > 0);
-        if (validItems.length === 0) {
-          alert(currentLang === 'ms' ? 'Sekurang-kurangnya satu item perlu ada jumlah' : 'At least one item must have an amount');
-          return;
-        }
-        req.claimDate = newClaimDate;
-        req.items = validItems;
-        renderRequests();
-        closeModalHandler();
-      };
-    } else if (req.type === 'leave') {
-      document.getElementById('saveEditBtn').onclick = () => {
-        req.leaveType = document.getElementById('editLeaveType').value;
-        req.halfDay = document.getElementById('editHalf').value;
-        req.startDate = document.getElementById('editStart').value;
-        req.endDate = document.getElementById('editEnd').value;
-        renderRequests();
-        closeModalHandler();
-      };
-    } else if (req.type === 'ot') {
-      document.getElementById('saveEditBtn').onclick = () => {
-        req.startDateTime = document.getElementById('editStartDT').value;
-        req.endDateTime = document.getElementById('editEndDT').value;
-        req.hours = parseFloat(document.getElementById('editHours').value);
-        req.amount = parseFloat(document.getElementById('editAmount').value);
-        req.site = document.getElementById('editSite').value;
-        req.description = document.getElementById('editDesc').value;
-        renderRequests();
-        closeModalHandler();
-      };
-    }
-    
-    modalDiv.querySelector('.closeModal').onclick = closeModalHandler;
-    modalDiv.querySelector('#cancelEditBtn').onclick = closeModalHandler;
-  }
-  
-  async function showAddModal(type) {
-    if (isModalOpen) {
-      alert(translations[currentLang].pleaseWait);
-      return;
-    }
-    
-    const isValid = await validateBeforeAction();
-    if (!isValid) return;
-    
-    isModalOpen = true;
-    
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'modal-overlay';
-    let inner = '';
-    
-    if (type === 'leave') {
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const todayStr = today.toISOString().split('T')[0];
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
-      inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Cuti Baru' : 'New Leave') + '</h3>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Cuti' : 'Leave Type') + '</label><select id="newLeaveType"><option>Annual</option><option>Sick</option><option>Unpaid</option><option>Maternity</option><option>Marriage</option><option>Paternal</option><option>Compassionate</option></select></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Separuh hari' : 'Half day') + '</label><select id="newHalf"><option value="full">' + (currentLang === 'ms' ? 'Penuh' : 'Full') + '</option><option value="morning">' + (currentLang === 'ms' ? 'Pagi' : 'Morning') + '</option><option value="afternoon">' + (currentLang === 'ms' ? 'Petang' : 'Afternoon') + '</option></select></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Mula' : 'Start Date') + '</label><input type="date" id="newStart" value="' + todayStr + '"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Akhir' : 'End Date') + '</label><input type="date" id="newEnd" value="' + tomorrowStr + '"></div>' +
-        '<div id="dateError" class="error-msg"></div>';
-    } else if (type === 'ot') {
-      inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Lebih Masa Baru' : 'New Overtime') + '</h3>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Mula' : 'Start') + '</label><input type="datetime-local" id="newStartDT"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tamat' : 'End') + '</label><input type="datetime-local" id="newEndDT"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jam (auto)' : 'Hours (auto)') + '</label><input type="number" step="0.5" id="newHours"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jumlah (RM)' : 'Amount (RM)') + '</label><input type="number" step="0.01" id="newAmount"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Lokasi' : 'Location') + '</label><input id="newSite"></div>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Keterangan' : 'Description') + '</label><textarea id="newDesc" rows="2"></textarea></div>';
-    } else if (type === 'claim') {
-      inner = '<h3>➕ ' + (currentLang === 'ms' ? 'Tuntutan Baru' : 'New Claim') + '</h3>' +
-        '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Tarikh Tuntutan' : 'Claim Date') + '</label><input type="date" id="newClaimDate" value="' + new Date().toISOString().slice(0, 10) + '"></div>' +
-        '<div id="newClaimItemsList"></div>' +
-        '<button type="button" id="addNewClaimItem" class="btn-icon">+ ' + (currentLang === 'ms' ? 'Tambah Item' : 'Add Item') + '</button>';
-    }
-    
-    modalDiv.innerHTML = '<div class="modal-content"><div style="text-align:right"><button class="closeModal" style="background:none;font-size:24px;">&times;</button></div>' + inner + '<div style="display:flex;gap:12px;margin-top:20px;"><button id="confirmAdd">' + (currentLang === 'ms' ? 'Tambah' : 'Add') + '</button><button id="cancelAdd">' + (currentLang === 'ms' ? 'Batal' : 'Cancel') + '</button></div></div>';
-    document.body.appendChild(modalDiv);
-    
-    const closeModalHandler = () => {
-      if (document.body.contains(modalDiv)) document.body.removeChild(modalDiv);
-      isModalOpen = false;
-    };
-    
-    // OT auto-calculate
-    if (type === 'ot') {
-      const start = document.getElementById('newStartDT');
-      const end = document.getElementById('newEndDT');
-      const hoursInp = document.getElementById('newHours');
-      const amtInp = document.getElementById('newAmount');
-      const update = () => {
-        if (start.value && end.value) {
-          let h = Math.round(((new Date(end.value) - new Date(start.value)) / 3600000) * 2) / 2;
-          hoursInp.value = h;
-          let rate = [15, 15, 15, 15, 15, 20, 25][new Date(start.value).getDay()];
-          amtInp.value = (h * rate).toFixed(2);
-        }
-      };
-      if (start) start.addEventListener('change', update);
-      if (end) end.addEventListener('change', update);
-    }
-    
-    // Claim items
-    if (type === 'claim') {
-      let claimItems = [];
-      
-      function renderClaimItems() {
-        const container = document.getElementById('newClaimItemsList');
-        if (!container) return;
-        container.innerHTML = '';
-        let html = '';
-        for (let idx = 0; idx < claimItems.length; idx++) {
-          const it = claimItems[idx];
-          html += '<div style="margin-bottom:16px;border-left:3px solid #00cc88;padding:10px;border-radius:12px;" data-item-index="' + idx + '">';
-          html += '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Tuntutan' : 'Claim Type') + '</label>' +
-            '<select class="claimTypeSelect" data-idx="' + idx + '">' +
-            '<option value="Meal" ' + (it.claimType === 'Meal' ? 'selected' : '') + '>🍽️ Meal</option>' +
-            '<option value="Touch n Go" ' + (it.claimType === 'Touch n Go' ? 'selected' : '') + '>💳 Touch n Go</option>' +
-            '<option value="Distance" ' + (it.claimType === 'Distance' ? 'selected' : '') + '>🚗 Distance</option>' +
-            '<option value="Hotel" ' + (it.claimType === 'Hotel' ? 'selected' : '') + '>🏨 Hotel</option>' +
-            '<option value="Item" ' + (it.claimType === 'Item' ? 'selected' : '') + '>📦 Item</option>' +
-            '</select></div>';
-          
-          html += '<div class="distFields" style="display:none;">' +
-            '<div class="form-group"><label>Dari</label><input type="text" class="distFrom" data-idx="' + idx + '" value="' + (it.from || '') + '"></div>' +
-            '<div class="form-group"><label>Ke</label><input type="text" class="distTo" data-idx="' + idx + '" value="' + (it.to || '') + '"></div>' +
-            '<div class="form-group"><label>Jarak (km)</label><input type="number" step="0.1" class="distKm" data-idx="' + idx + '" value="' + (it.km || '') + '"></div>' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="text" class="distAmount" data-idx="' + idx + '" readonly value="' + (it.amount ? it.amount.toFixed(2) : '0') + '"></div></div>';
-          
-          html += '<div class="hotelFields" style="display:none;">' +
-            '<div class="form-group"><label>Check-in</label><input type="date" class="hotelIn" data-idx="' + idx + '" value="' + (it.checkIn || '') + '"></div>' +
-            '<div class="form-group"><label>Check-out</label><input type="date" class="hotelOut" data-idx="' + idx + '" value="' + (it.checkOut || '') + '"></div>' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="hotelAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<div class="mealFields" style="display:none;">' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="mealAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<div class="tngFields" style="display:none;">' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="tngAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<div class="othersFields" style="display:none;">' +
-            '<div class="form-group"><label>Keterangan</label><input type="text" class="othersDesc" data-idx="' + idx + '" value="' + (it.itemDesc || '') + '"></div>' +
-            '<div class="form-group"><label>Jumlah (RM)</label><input type="number" step="0.01" class="othersAmount" data-idx="' + idx + '" value="' + (it.amount || '') + '"></div></div>';
-          
-          html += '<button class="removeItem" data-idx="' + idx + '" style="background:#dc3545; color:white; border:none; padding:4px 10px; border-radius:20px; margin-top:8px;">' + (currentLang === 'ms' ? 'Buang' : 'Remove') + '</button>';
-          html += '<hr></div>';
-        }
-        container.innerHTML = html;
-        
-        // Attach events for each claim item
-        for (let i = 0; i < claimItems.length; i++) {
-          attachClaimEvents(i);
-        }
-        
-        document.querySelectorAll('.removeItem').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            let idx = parseInt(btn.dataset.idx);
-            claimItems.splice(idx, 1);
+        if (type === 'claim') {
+            var claimItems = [];
+            var container = document.getElementById('newClaimItemsList');
+            
+            function renderClaimItems() {
+                if (!container) return;
+                var html = '';
+                for (var i = 0; i < claimItems.length; i++) {
+                    var it = claimItems[i];
+                    html += '<div style="margin-bottom:16px;border-left:3px solid #00cc88;padding:10px;border-radius:12px;">';
+                    html += '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jenis Tuntutan' : 'Claim Type') + '</label>' +
+                        '<select class="claimTypeSelect" data-idx="' + i + '">' +
+                        '<option value="Meal" ' + (it.claimType === 'Meal' ? 'selected' : '') + '>🍽️ Meal</option>' +
+                        '<option value="Touch n Go" ' + (it.claimType === 'Touch n Go' ? 'selected' : '') + '>💳 Touch n Go</option>' +
+                        '<option value="Distance" ' + (it.claimType === 'Distance' ? 'selected' : '') + '>🚗 Distance</option>' +
+                        '<option value="Hotel" ' + (it.claimType === 'Hotel' ? 'selected' : '') + '>🏨 Hotel</option>' +
+                        '<option value="Item" ' + (it.claimType === 'Item' ? 'selected' : '') + '>📦 Item</option>' +
+                        '</select></div>';
+                    html += '<div class="form-group"><label>' + (currentLang === 'ms' ? 'Jumlah (RM)' : 'Amount (RM)') + '</label><input type="number" step="0.01" class="claimAmount" data-idx="' + i + '" value="' + (it.amount || 0) + '"></div>';
+                    html += '<button class="removeClaimItem" data-idx="' + i + '" style="background:#dc3545;color:white;border:none;padding:4px 10px;border-radius:20px;cursor:pointer;">' + (currentLang === 'ms' ? 'Buang' : 'Remove') + '</button>';
+                    html += '<hr></div>';
+                }
+                container.innerHTML = html;
+                
+                document.querySelectorAll('.claimTypeSelect').forEach(function(sel) {
+                    sel.addEventListener('change', function() {
+                        var idx = parseInt(this.dataset.idx);
+                        claimItems[idx].claimType = this.value;
+                    });
+                });
+                
+                document.querySelectorAll('.claimAmount').forEach(function(inp) {
+                    inp.addEventListener('input', function() {
+                        var idx = parseInt(this.dataset.idx);
+                        claimItems[idx].amount = parseFloat(this.value) || 0;
+                    });
+                });
+                
+                document.querySelectorAll('.removeClaimItem').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var idx = parseInt(this.dataset.idx);
+                        claimItems.splice(idx, 1);
+                        renderClaimItems();
+                    });
+                });
+            }
+            
+            document.getElementById('addNewClaimItem').addEventListener('click', function() {
+                if (isAddingItem) return;
+                isAddingItem = true;
+                claimItems.push({ claimType: 'Meal', amount: 0 });
+                renderClaimItems();
+                setTimeout(function() { isAddingItem = false; }, 500);
+            });
+            
             renderClaimItems();
-          });
+            
+            document.getElementById('confirmAdd').addEventListener('click', function() {
+                if (isConfirming) return;
+                isConfirming = true;
+                var claimDate = document.getElementById('newClaimDate').value;
+                var validItems = claimItems.filter(function(i) { return i.amount > 0; });
+                if (validItems.length === 0) {
+                    alert(currentLang === 'ms' ? 'Tambah sekurang-kurangnya satu item' : 'Add at least one item');
+                    isConfirming = false;
+                    return;
+                }
+                requests.push({ id: nextId++, type: 'Claim', claimDate: claimDate, items: validItems });
+                renderRequests();
+                closeModalHandler();
+                isConfirming = false;
+            });
+        } else if (type === 'leave') {
+            document.getElementById('confirmAdd').addEventListener('click', function() {
+                if (isConfirming) return;
+                isConfirming = true;
+                var lt = document.getElementById('newLeaveType').value;
+                var hd = document.getElementById('newHalf').value;
+                var startDate = document.getElementById('newStart').value;
+                var endDate = document.getElementById('newEnd').value;
+                if (!startDate || !endDate) {
+                    document.getElementById('dateError').innerText = currentLang === 'ms' ? 'Sila pilih tarikh' : 'Please select dates';
+                    isConfirming = false;
+                    return;
+                }
+                requests.push({ id: nextId++, type: 'Leave', leaveType: lt, halfDay: hd, startDate: startDate, endDate: endDate });
+                renderRequests();
+                closeModalHandler();
+                isConfirming = false;
+            });
+        } else if (type === 'ot') {
+            document.getElementById('confirmAdd').addEventListener('click', function() {
+                if (isConfirming) return;
+                isConfirming = true;
+                var sdt = document.getElementById('newStartDT').value;
+                var edt = document.getElementById('newEndDT').value;
+                var hrs = parseFloat(document.getElementById('newHours').value) || 0;
+                var amt = parseFloat(document.getElementById('newAmount').value) || 0;
+                if (!sdt || !edt) {
+                    alert(currentLang === 'ms' ? 'Pilih masa' : 'Select datetime');
+                    isConfirming = false;
+                    return;
+                }
+                requests.push({ id: nextId++, type: 'Overtime', startDateTime: sdt, endDateTime: edt, hours: hrs, amount: amt });
+                renderRequests();
+                closeModalHandler();
+                isConfirming = false;
+            });
+        }
+        
+        modalDiv.querySelector('.closeModal').addEventListener('click', closeModalHandler);
+        modalDiv.querySelector('#cancelAdd').addEventListener('click', closeModalHandler);
+    }
+    
+    document.querySelectorAll('.badge-add').forEach(function(b) {
+        b.addEventListener('click', function(e) {
+            if (isBadgeClicking) return;
+            isBadgeClicking = true;
+            showAddModal(this.dataset.type);
+            setTimeout(function() { isBadgeClicking = false; }, 1000);
         });
-      }
-      
-      function attachClaimEvents(idx) {
-        const typeSel = document.querySelector('.claimTypeSelect[data-idx="' + idx + '"]');
-        const container = document.querySelector('[data-item-index="' + idx + '"]');
-        if (!container) return;
-        
-        const distDiv = container.querySelector('.distFields');
-        const hotelDiv = container.querySelector('.hotelFields');
-        const mealDiv = container.querySelector('.mealFields');
-        const tngDiv = container.querySelector('.tngFields');
-        const othersDiv = container.querySelector('.othersFields');
-        
-        function toggle() {
-          const val = typeSel.value;
-          if (distDiv) distDiv.style.display = val === 'Distance' ? 'block' : 'none';
-          if (hotelDiv) hotelDiv.style.display = val === 'Hotel' ? 'block' : 'none';
-          if (mealDiv) mealDiv.style.display = val === 'Meal' ? 'block' : 'none';
-          if (tngDiv) tngDiv.style.display = val === 'Touch n Go' ? 'block' : 'none';
-          if (othersDiv) othersDiv.style.display = val === 'Item' ? 'block' : 'none';
-          claimItems[idx].claimType = val;
-        }
-        if (typeSel) {
-          typeSel.addEventListener('change', toggle);
-          toggle();
+    });
+    
+    submitAllBtn.onclick = function() {
+        if (isSubmitting) {
+            alert(getText('pleaseWait'));
+            return;
         }
         
-        const kmInp = container.querySelector('.distKm');
-        const distAmt = container.querySelector('.distAmount');
-        if (kmInp && distAmt) {
-          kmInp.addEventListener('input', async () => {
-            let km = parseFloat(kmInp.value) || 0;
-            let rate = 0.6;
-            try {
-              const res = await fetch('/api/get-settings');
-              const settings = await res.json();
-              rate = settings.distanceRate || 0.6;
-            } catch(e) { rate = 0.6; }
-            let amt = km * rate;
-            distAmt.value = amt.toFixed(2);
-            claimItems[idx].amount = amt;
-            claimItems[idx].km = km;
-          });
+        var email = reqEmail.value.trim();
+        var name = reqName.value.trim();
+        
+        if (!email || !name) {
+            alert(getText('pleaseEnterEmailName'));
+            return;
         }
         
-        const fromInp = container.querySelector('.distFrom');
-        const toInp = container.querySelector('.distTo');
-        if (fromInp) fromInp.addEventListener('change', () => { claimItems[idx].from = fromInp.value; });
-        if (toInp) toInp.addEventListener('change', () => { claimItems[idx].to = toInp.value; });
+        if (requests.length === 0) {
+            alert(currentLang === 'ms' ? 'Tiada permohonan' : 'No requests');
+            return;
+        }
         
-        const hotelIn = container.querySelector('.hotelIn');
-        const hotelOut = container.querySelector('.hotelOut');
-        const hotelAmt = container.querySelector('.hotelAmount');
-        if (hotelIn && hotelOut && hotelAmt) {
-          const updateHotel = async () => {
-            if (hotelIn.value && hotelOut.value) {
-              let nights = Math.max(1, Math.round((new Date(hotelOut.value) - new Date(hotelIn.value)) / (1000 * 60 * 60 * 24)));
-              let rate = 150;
-              try {
-                const res = await fetch('/api/get-settings');
-                const settings = await res.json();
-                rate = settings.hotelRate || 150;
-              } catch(e) { rate = 150; }
-              let amt = nights * rate;
-              hotelAmt.value = amt;
-              claimItems[idx].amount = amt;
-              claimItems[idx].checkIn = hotelIn.value;
-              claimItems[idx].checkOut = hotelOut.value;
+        isSubmitting = true;
+        submitAllBtn.disabled = true;
+        submitAllBtn.style.opacity = '0.6';
+        
+        var t = translations[currentLang];
+        submitResultDiv.style.display = 'block';
+        submitResultDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + t.waiting;
+        
+        setTimeout(function() {
+            submitResultDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + t.submitSuccess;
+            requests = [];
+            renderRequests();
+            isSubmitting = false;
+            submitAllBtn.disabled = false;
+            submitAllBtn.style.opacity = '1';
+            setTimeout(function() {
+                submitResultDiv.style.display = 'none';
+            }, 3000);
+        }, 1500);
+    };
+    
+    uploadBtn.onclick = function() {
+        if (isUploading) {
+            alert(getText('pleaseWait'));
+            return;
+        }
+        
+        var email = reqEmail.value.trim();
+        var name = reqName.value.trim();
+        
+        if (!email || !name) {
+            alert(getText('pleaseEnterEmailName'));
+            return;
+        }
+        
+        var file = fileInput.files[0];
+        if (!file) {
+            alert(currentLang === 'ms' ? 'Pilih fail' : 'Select a file');
+            return;
+        }
+        
+        isUploading = true;
+        uploadBtn.disabled = true;
+        uploadBtn.style.opacity = '0.6';
+        
+        var t = translations[currentLang];
+        uploadFeedback.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + t.waiting;
+        
+        var fd = new FormData();
+        fd.append('email', email);
+        fd.append('fullName', name);
+        fd.append('receiptType', document.getElementById('receiptType').value);
+        fd.append('description', document.getElementById('receiptDesc').value);
+        fd.append('file', file);
+        
+        fetch('/api/upload-receipt', { method: 'POST', body: fd })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    uploadFeedback.innerHTML = '<i class="fas fa-check-circle"></i> ' + t.uploadOk + ' (' + file.name + ')';
+                    fileInput.value = '';
+                    document.getElementById('receiptDesc').value = '';
+                } else {
+                    uploadFeedback.innerHTML = '<i class="fas fa-times"></i> ' + data.error;
+                }
+            })
+            .catch(function() {
+                uploadFeedback.innerHTML = '<i class="fas fa-times"></i> ' + t.uploadFail;
+            })
+            .finally(function() {
+                isUploading = false;
+                uploadBtn.disabled = false;
+                uploadBtn.style.opacity = '1';
+                setTimeout(function() {
+                    uploadFeedback.innerHTML = '';
+                }, 3000);
+            });
+    };
+    
+    sendChatBtn.onclick = function() {
+        if (isSending) return;
+        
+        var email = document.getElementById('chatEmail').value.trim();
+        var msg = document.getElementById('chatInput').value.trim();
+        
+        if (!email || !msg) {
+            alert(currentLang === 'ms' ? 'Email dan soalan diperlukan' : 'Email and message required');
+            return;
+        }
+        
+        isSending = true;
+        sendChatBtn.disabled = true;
+        sendChatBtn.style.opacity = '0.6';
+        
+        var chatBox = document.getElementById('chatBox');
+        var userDiv = document.createElement('div');
+        userDiv.className = 'msg-user';
+        userDiv.innerText = msg;
+        chatBox.appendChild(userDiv);
+        document.getElementById('chatInput').value = '';
+        
+        var loading = document.createElement('div');
+        loading.className = 'msg-ai';
+        loading.innerText = '...';
+        chatBox.appendChild(loading);
+        
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg, email: email, language: currentLang })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            loading.innerText = data.reply || (currentLang === 'ms' ? 'Ralat' : 'Error');
+        })
+        .catch(function() {
+            loading.innerText = currentLang === 'ms' ? 'Ralat rangkaian' : 'Network error';
+        })
+        .finally(function() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+            isSending = false;
+            sendChatBtn.disabled = false;
+            sendChatBtn.style.opacity = '1';
+        });
+    };
+    
+    loadHistoryBtn.onclick = function() {
+        if (isLoading) return;
+        
+        var email = document.getElementById('historyEmail').value.trim();
+        if (!email) return;
+        
+        isLoading = true;
+        loadHistoryBtn.disabled = true;
+        loadHistoryBtn.style.opacity = '0.6';
+        
+        var historyDiv = document.getElementById('historyList');
+        historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Memuatkan...' : 'Loading...') + '</p>';
+        
+        fetch('/api/get-history?email=' + encodeURIComponent(email))
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Ralat memuat sejarah' : 'Error loading history') + '</p>';
+                } else if (data.history.length === 0) {
+                    historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Tiada rekod' : 'No records') + '</p>';
+                } else {
+                    var html = '';
+                    for (var i = 0; i < data.history.length; i++) {
+                        var h = data.history[i];
+                        html += '<div class="history-item"><strong>' + h.type + '</strong> - ' + h.status + ' - ' + (h.date || h.claimDate || '') + '</div>';
+                    }
+                    historyDiv.innerHTML = html;
+                }
+            })
+            .catch(function() {
+                historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Ralat' : 'Error') + '</p>';
+            })
+            .finally(function() {
+                isLoading = false;
+                loadHistoryBtn.disabled = false;
+                loadHistoryBtn.style.opacity = '1';
+            });
+    };
+    
+    var tabs = document.querySelectorAll('.tab');
+    var panes = {
+        'request-tab': document.getElementById('request-tab'),
+        'chat-tab': document.getElementById('chat-tab'),
+        'history-tab': document.getElementById('history-tab'),
+        'calendar-tab': document.getElementById('calendar-tab')
+    };
+    
+    tabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            tabs.forEach(function(t) { t.classList.remove('active'); });
+            this.classList.add('active');
+            for (var key in panes) {
+                if (panes.hasOwnProperty(key)) {
+                    panes[key].style.display = 'none';
+                }
             }
-          };
-          hotelIn.addEventListener('change', updateHotel);
-          hotelOut.addEventListener('change', updateHotel);
-          hotelAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(hotelAmt.value) || 0; });
-        }
-        
-        const mealAmt = container.querySelector('.mealAmount');
-        if (mealAmt) mealAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(mealAmt.value) || 0; });
-        
-        const tngAmt = container.querySelector('.tngAmount');
-        if (tngAmt) tngAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(tngAmt.value) || 0; });
-        
-        const othersAmt = container.querySelector('.othersAmount');
-        const othersDesc = container.querySelector('.othersDesc');
-        if (othersAmt) othersAmt.addEventListener('input', () => { claimItems[idx].amount = parseFloat(othersAmt.value) || 0; });
-        if (othersDesc) othersDesc.addEventListener('input', () => { claimItems[idx].itemDesc = othersDesc.value; });
-      }
-      
-      const addItemBtn = document.getElementById('addNewClaimItem');
-      if (addItemBtn) {
-        addItemBtn.onclick = () => {
-          if (isAddingItem) return;
-          isAddingItem = true;
-          claimItems.push({ claimType: 'Meal', amount: 0 });
-          renderClaimItems();
-          setTimeout(() => { isAddingItem = false; }, 500);
-        };
-      }
-      
-      renderClaimItems();
-      
-      const confirmBtn = modalDiv.querySelector('#confirmAdd');
-      if (confirmBtn) {
-        confirmBtn.onclick = () => {
-          if (isConfirming) return;
-          isConfirming = true;
-          
-          const claimDate = document.getElementById('newClaimDate').value;
-          const validItems = claimItems.filter(i => i.amount > 0);
-          if (validItems.length === 0) {
-            alert(currentLang === 'ms' ? 'Tambah sekurang-kurangnya satu item' : 'Add at least one item');
-            isConfirming = false;
-            return;
-          }
-          requests.push({ id: nextId++, type: 'claim', claimDate: claimDate, items: validItems });
-          renderRequests();
-          closeModalHandler();
-          isConfirming = false;
-        };
-      }
-    } else if (type === 'leave') {
-      const confirmBtn = modalDiv.querySelector('#confirmAdd');
-      if (confirmBtn) {
-        confirmBtn.onclick = async () => {
-          if (isConfirming) return;
-          isConfirming = true;
-          
-          const lt = document.getElementById('newLeaveType').value;
-          const hd = document.getElementById('newHalf').value;
-          const startInput = document.getElementById('newStart');
-          const endInput = document.getElementById('newEnd');
-          const errorSpan = document.getElementById('dateError');
-          
-          let startDate = startInput.value ? new Date(startInput.value) : null;
-          let endDate = endInput.value ? new Date(endInput.value) : null;
-          
-          if (!startDate || !endDate || isNaN(startDate) || isNaN(endDate)) {
-            errorSpan.innerText = currentLang === 'ms' ? 'Sila pilih tarikh yang sah menggunakan kalendar.' : 'Please select valid dates using the calendar.';
-            isConfirming = false;
-            return;
-          }
-          if (endDate < startDate) {
-            errorSpan.innerText = currentLang === 'ms' ? 'Tarikh akhir mestilah selepas tarikh mula.' : 'End date must be after start date.';
-            isConfirming = false;
-            return;
-          }
-          const sdStr = startDate.toISOString().split('T')[0];
-          const edStr = endDate.toISOString().split('T')[0];
-          const daysReq = calculateLeaveDaysFront(sdStr, edStr, hd);
-          if (daysReq > currentBalance) {
-            errorSpan.innerText = translations[currentLang].leaveInsufficient + currentBalance + ' ' + (currentLang === 'ms' ? 'hari. Permohonan anda: ' : 'days. Requested: ') + daysReq + ' ' + (currentLang === 'ms' ? 'hari.' : 'days.');
-            isConfirming = false;
-            return;
-          }
-          requests.push({ id: nextId++, type: 'leave', leaveType: lt, halfDay: hd, startDate: sdStr, endDate: edStr });
-          renderRequests();
-          closeModalHandler();
-          isConfirming = false;
-        };
-      }
-    } else if (type === 'ot') {
-      const confirmBtn = modalDiv.querySelector('#confirmAdd');
-      if (confirmBtn) {
-        confirmBtn.onclick = () => {
-          if (isConfirming) return;
-          isConfirming = true;
-          
-          const sdt = document.getElementById('newStartDT').value;
-          const edt = document.getElementById('newEndDT').value;
-          const hrs = parseFloat(document.getElementById('newHours').value);
-          const amt = parseFloat(document.getElementById('newAmount').value);
-          const site = document.getElementById('newSite').value;
-          const desc = document.getElementById('newDesc').value;
-          if (!sdt || !edt) {
-            alert(currentLang === 'ms' ? 'Pilih masa' : 'Select datetime');
-            isConfirming = false;
-            return;
-          }
-          requests.push({ id: nextId++, type: 'ot', startDateTime: sdt, endDateTime: edt, hours: hrs, amount: amt, site: site, description: desc });
-          renderRequests();
-          closeModalHandler();
-          isConfirming = false;
-        };
-      }
-    }
-    
-    modalDiv.querySelector('.closeModal').onclick = closeModalHandler;
-    modalDiv.querySelector('#cancelAdd').onclick = closeModalHandler;
-  }
-  
-  // ========== EVENT LISTENERS ==========
-  
-  document.querySelectorAll('.badge-add').forEach(b => {
-    b.addEventListener('click', async (e) => {
-      if (isBadgeClicking) return;
-      isBadgeClicking = true;
-      await showAddModal(b.dataset.type);
-      setTimeout(() => { isBadgeClicking = false; }, 1000);
+            var tabName = this.dataset.tab + '-tab';
+            if (panes[tabName]) {
+                panes[tabName].style.display = 'block';
+            }
+            if (this.dataset.tab === 'calendar') {
+                setTimeout(loadCalendar, 100);
+            }
+        });
     });
-  });
-  
-  submitAllBtn.onclick = async () => {
-    if (isSubmitting) {
-      alert(translations[currentLang].pleaseWait);
-      return;
-    }
     
-    const email = reqEmail.value.trim();
-    const name = reqName.value.trim();
-    
-    if (!email || !name) {
-      alert(translations[currentLang].pleaseEnterEmailName);
-      return;
-    }
-    
-    if (requests.length === 0) {
-      alert(currentLang === 'ms' ? 'Tiada permohonan' : 'No requests');
-      return;
-    }
-    
-    isSubmitting = true;
-    submitAllBtn.disabled = true;
-    submitAllBtn.style.opacity = '0.6';
-    
-    const t = translations[currentLang];
-    submitResultDiv.style.display = 'block';
-    submitResultDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + t.waiting;
-    
-    try {
-      for (let it of requests) {
-        if (it.type === 'leave') {
-          await fetch('/api/submit-leave', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email, name,
-              leaveType: it.leaveType,
-              halfDay: it.halfDay,
-              startDate: it.startDate,
-              endDate: it.endDate
+    function loadCalendar() {
+        var monthInput = document.getElementById('calendarMonth');
+        if (!monthInput || !monthInput.value) return;
+        
+        var [year, month] = monthInput.value.split('-');
+        var calendarView = document.getElementById('calendarView');
+        
+        fetch('/api/get-leave-calendar?year=' + year + '&month=' + month)
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (!data.success) {
+                    calendarView.innerHTML = '<p>Error loading calendar</p>';
+                    return;
+                }
+                
+                var daysInMonth = new Date(parseInt(year), parseInt(month), 0).getDate();
+                var firstDay = new Date(parseInt(year), parseInt(month) - 1, 1).getDay();
+                var weekdays = currentLang === 'ms' ? ['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                var monthNames = currentLang === 'ms' ? ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'] : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                
+                var html = '<table style="width:100%;border-collapse:collapse;border-radius:16px;overflow:hidden;">';
+                html += '<tr style="background:#00aa6e;color:white;">';
+                html += '<td colspan="7" style="text-align:center;padding:12px;font-weight:bold;font-size:1.1rem;">' + monthNames[parseInt(month) - 1] + ' ' + year + '</td>';
+                html += '</tr><tr>';
+                for (var w = 0; w < weekdays.length; w++) {
+                    html += '<th style="border:1px solid #ddd;padding:8px;text-align:center;background:#f0f4f8;font-weight:600;">' + weekdays[w] + '</th>';
+                }
+                html += '</tr>';
+                
+                var row = '<tr>';
+                for (var i = 0; i < firstDay; i++) {
+                    row += '<td style="border:1px solid #ddd;padding:8px;height:60px;vertical-align:top;background:#f9f9f9;"></td>';
+                }
+                
+                for (var d = 1; d <= daysInMonth; d++) {
+                    var dateStr = year + '-' + String(month).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                    var hasLeave = data.leaves.filter(function(l) { return l.start <= dateStr && l.end >= dateStr; });
+                    
+                    row += '<td style="border:1px solid #ddd;padding:8px;height:60px;vertical-align:top;">' + d;
+                    for (var l = 0; l < hasLeave.length; l++) {
+                        row += '<div style="background:#00cc8820;border-radius:4px;padding:2px;font-size:10px;margin-top:2px;font-weight:600;">' + hasLeave[l].name + '</div>';
+                    }
+                    row += '</td>';
+                    
+                    if ((firstDay + d) % 7 === 0 && d !== daysInMonth) {
+                        row += '</tr><tr>';
+                    }
+                }
+                
+                var remaining = 7 - ((firstDay + daysInMonth) % 7);
+                if (remaining < 7) {
+                    for (var r = 0; r < remaining; r++) {
+                        row += '<td style="border:1px solid #ddd;padding:8px;background:#f9f9f9;"></td>';
+                    }
+                }
+                row += '</tr>';
+                html += row + '</table>';
+                calendarView.innerHTML = html;
             })
-          });
-        } else if (it.type === 'ot') {
-          await fetch('/api/submit-overtime', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email, fullName: name,
-              startDateTime: it.startDateTime,
-              endDateTime: it.endDateTime,
-              hours: it.hours,
-              amount: it.amount,
-              site: it.site,
-              description: it.description || ''
-            })
-          });
-        } else if (it.type === 'claim') {
-          await fetch('/api/submit-claim', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email, fullName: name,
-              claimDate: it.claimDate,
-              items: it.items
-            })
-          });
-        }
-      }
-      submitResultDiv.innerHTML = '<i class="fas fa-check-circle"></i> ' + t.submitSuccess;
-      requests = [];
-      renderRequests();
-    } catch (err) {
-      submitResultDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + t.submitFail + ': ' + err.message;
-    } finally {
-      isSubmitting = false;
-      submitAllBtn.disabled = false;
-      submitAllBtn.style.opacity = '1';
-      setTimeout(() => {
-        submitResultDiv.style.display = 'none';
-      }, 3000);
-    }
-  };
-  
-  uploadBtn.onclick = async () => {
-    if (isUploading) {
-      alert(translations[currentLang].pleaseWait);
-      return;
+            .catch(function() {
+                calendarView.innerHTML = '<p>Error loading calendar</p>';
+            });
     }
     
-    const email = reqEmail.value.trim();
-    const name = reqName.value.trim();
-    
-    if (!email || !name) {
-      alert(translations[currentLang].pleaseEnterEmailName);
-      return;
+    var calendarMonthInput = document.getElementById('calendarMonth');
+    if (calendarMonthInput) {
+        var now = new Date();
+        calendarMonthInput.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        calendarMonthInput.addEventListener('change', loadCalendar);
     }
     
-    const file = fileInput.files[0];
-    if (!file) {
-      alert(currentLang === 'ms' ? 'Pilih fail' : 'Select a file');
-      return;
-    }
-    
-    isUploading = true;
-    uploadBtn.disabled = true;
-    uploadBtn.style.opacity = '0.6';
-    
-    const t = translations[currentLang];
-    uploadFeedback.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ' + t.waiting;
-    
-    const fd = new FormData();
-    fd.append('email', email);
-    fd.append('fullName', name);
-    fd.append('receiptType', document.getElementById('receiptType').value);
-    fd.append('description', document.getElementById('receiptDesc').value);
-    fd.append('file', file);
-    
-    try {
-      const resp = await fetch('/api/upload-receipt', { method: 'POST', body: fd });
-      const data = await resp.json();
-      if (data.success) {
-        uploadFeedback.innerHTML = '<i class="fas fa-check-circle"></i> ' + t.uploadOk + ' (' + file.name + ')';
-        fileInput.value = '';
-        document.getElementById('receiptDesc').value = '';
-      } else {
-        uploadFeedback.innerHTML = '<i class="fas fa-times"></i> ' + data.error;
-      }
-    } catch (e) {
-      uploadFeedback.innerHTML = '<i class="fas fa-times"></i> ' + t.uploadFail;
-    } finally {
-      isUploading = false;
-      uploadBtn.disabled = false;
-      uploadBtn.style.opacity = '1';
-      setTimeout(() => {
-        uploadFeedback.innerHTML = '';
-      }, 3000);
-    }
-  };
-  
-  sendChatBtn.onclick = async () => {
-    if (isSending) return;
-    
-    const email = document.getElementById('chatEmail').value.trim();
-    const msg = document.getElementById('chatInput').value.trim();
-    
-    if (!email || !msg) {
-      alert(currentLang === 'ms' ? 'Email dan soalan diperlukan' : 'Email and message required');
-      return;
-    }
-    
-    isSending = true;
-    sendChatBtn.disabled = true;
-    sendChatBtn.style.opacity = '0.6';
-    
-    const chatBox = document.getElementById('chatBox');
-    const userDiv = document.createElement('div');
-    userDiv.className = 'msg-user';
-    userDiv.innerText = msg;
-    chatBox.appendChild(userDiv);
-    document.getElementById('chatInput').value = '';
-    
-    const loading = document.createElement('div');
-    loading.className = 'msg-ai';
-    loading.innerText = '...';
-    chatBox.appendChild(loading);
-    
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg, email: email, language: currentLang })
-      });
-      const data = await res.json();
-      loading.innerText = data.reply || (currentLang === 'ms' ? 'Ralat' : 'Error');
-    } catch (e) {
-      loading.innerText = currentLang === 'ms' ? 'Ralat rangkaian' : 'Network error';
-    }
-    
-    chatBox.scrollTop = chatBox.scrollHeight;
-    isSending = false;
-    sendChatBtn.disabled = false;
-    sendChatBtn.style.opacity = '1';
-  };
-  
-  loadHistoryBtn.onclick = async () => {
-    if (isLoading) return;
-    
-    const email = document.getElementById('historyEmail').value;
-    if (!email) return;
-    
-    isLoading = true;
-    loadHistoryBtn.disabled = true;
-    loadHistoryBtn.style.opacity = '0.6';
-    
-    try {
-      const res = await fetch('/api/get-history?email=' + encodeURIComponent(email));
-      const data = await res.json();
-      const historyDiv = document.getElementById('historyList');
-      
-      if (!data.success) {
-        historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Ralat memuat sejarah' : 'Error loading history') + '</p>';
-      } else if (data.history.length === 0) {
-        historyDiv.innerHTML = '<p>' + (currentLang === 'ms' ? 'Tiada rekod' : 'No records') + '</p>';
-      } else {
-        let html = '';
-        for (let h of data.history) {
-          if (h.type === 'Leave') {
-            html += '<div class="history-item"><i class="fas fa-calendar"></i> <strong>' + (currentLang === 'ms' ? 'Cuti' : 'Leave') + '</strong> ' + h.leaveType + ' (' + h.halfDay + ') ' + h.start + ' → ' + h.end + ' - ' + h.status + '</div>';
-          } else if (h.type === 'Overtime') {
-            html += '<div class="history-item"><i class="fas fa-clock"></i> <strong>' + (currentLang === 'ms' ? 'Lebih Masa' : 'Overtime') + '</strong> ' + h.date + ' ' + h.hours + 'h = RM' + parseFloat(h.amount).toFixed(2) + ' - ' + h.status + '</div>';
-          } else if (h.type === 'Claim') {
-            html += '<div class="history-item"><i class="fas fa-receipt"></i> <strong>' + (currentLang === 'ms' ? 'Tuntutan' : 'Claim') + '</strong> ' + h.claimType + ' RM' + parseFloat(h.amount).toFixed(2) + ' (' + h.claimDate + ') - ' + h.status + '</div>';
-          } else if (h.type === 'Receipt') {
-            html += '<div class="history-item"><i class="fas fa-paperclip"></i> <strong>' + (currentLang === 'ms' ? 'Resit' : 'Receipt') + '</strong> ' + h.receiptType + ' - <a href="' + h.fileUrl + '" target="_blank">' + (currentLang === 'ms' ? 'lihat' : 'view') + '</a> - ' + h.status + '</div>';
-          }
-          html += '</div>';
-        }
-        historyDiv.innerHTML = html;
-      }
-    } finally {
-      isLoading = false;
-      loadHistoryBtn.disabled = false;
-      loadHistoryBtn.style.opacity = '1';
-    }
-  };
-  
-  // Tab switching
-  const tabs = document.querySelectorAll('.tab');
-  const panes = {
-    'request-tab': document.getElementById('request-tab'),
-    'chat-tab': document.getElementById('chat-tab'),
-    'history-tab': document.getElementById('history-tab'),
-    'calendar-tab': document.getElementById('calendar-tab')
-  };
-  
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      Object.keys(panes).forEach(p => panes[p].style.display = 'none');
-      panes[tab.dataset.tab + '-tab'].style.display = 'block';
-      if (tab.dataset.tab === 'calendar') {
-        setTimeout(loadCalendar, 100);
-      }
-    });
-  });
-  
-  // Calendar month change
-  const calendarMonthInput = document.getElementById('calendarMonth');
-  if (calendarMonthInput) {
-    const now = new Date();
-    calendarMonthInput.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-    calendarMonthInput.addEventListener('change', loadCalendar);
-  }
-  
-  // ========== INIT ==========
-  applyUILanguage();
-  renderRequests();
-  setTimeout(loadCalendar, 200);
-  
+    applyUILanguage();
+    renderRequests();
+    setTimeout(loadCalendar, 200);
 })();
 </script>
 </body>
