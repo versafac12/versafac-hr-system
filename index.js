@@ -678,7 +678,6 @@ async function generateMonthlyReport(env, year, month, lang = 'ms') {
 // ============================================================
 
 const HTML_DASHBOARD = `<!DOCTYPE html>
-const HTML_DASHBOARD = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
